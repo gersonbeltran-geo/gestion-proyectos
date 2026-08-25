@@ -311,6 +311,89 @@
   .link-scope-tag.personal{background:var(--violet-bg); color:var(--violet);}
   .link-scope-tag.common{background:#F0EAE5; color:var(--ink-soft);}
 
+  /* ---------- CRONOGRAMA ---------- */
+  .view-tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .view-tab{
+    background:#fff; border:1.5px solid var(--line); color:var(--ink-soft);
+    font-weight:700; font-size:12.5px; padding:8px 14px; border-radius:9px; cursor:pointer;
+  }
+  .view-tab.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .timeline-card{
+    background:var(--card); border-radius:16px; box-shadow:var(--shadow); border:1px solid #F0E6DE;
+    padding:18px 20px 22px;
+  }
+  .timeline-empty{color:var(--ink-soft); font-size:13px; text-align:center; padding:30px 10px;}
+  .timeline-scroll{overflow-x:auto; padding-bottom:4px;}
+  .timeline-inner{min-width:640px; position:relative;}
+  .timeline-axis{
+    position:relative; height:22px; margin-bottom:6px; margin-left:150px;
+    border-bottom:1px solid var(--line);
+  }
+  .timeline-tick{
+    position:absolute; top:0; transform:translateX(-50%);
+    font-size:10px; color:var(--ink-soft); font-weight:600; font-family:'JetBrains Mono',monospace;
+    white-space:nowrap;
+  }
+  .timeline-body{position:relative; margin-left:150px;}
+  .timeline-today-line{
+    position:absolute; top:0; bottom:0; width:0; border-left:2px dashed var(--coral-deep);
+    z-index:2;
+  }
+  .timeline-today-label{
+    position:absolute; top:-2px; transform:translateX(-50%);
+    font-size:9px; font-weight:800; color:var(--coral-deep); background:#fff; padding:0 3px;
+  }
+  .timeline-row{position:relative; height:38px; display:flex; align-items:center;}
+  .timeline-row-label{
+    position:absolute; left:-150px; width:140px; font-size:12px; font-weight:700; color:var(--ink);
+    display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .timeline-track{position:relative; height:100%; width:100%;}
+  .timeline-line{position:absolute; top:50%; height:2px; background:var(--line); transform:translateY(-50%);}
+  .timeline-dot{
+    position:absolute; top:50%; width:11px; height:11px; border-radius:50%;
+    transform:translate(-50%,-50%); border:2px solid #fff; box-shadow:0 0 0 1px rgba(34,29,27,.1);
+    cursor:default;
+  }
+  .timeline-empty-row{
+    position:absolute; left:0; top:50%; transform:translateY(-50%);
+    font-size:11px; color:var(--ink-soft); font-style:italic;
+  }
+  .timeline-legend{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;}
+  .timeline-legend-item{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-soft); font-weight:600;}
+  .timeline-legend-item .dot{width:8px; height:8px;}
+  .summary-stats{display:grid; grid-template-columns:repeat(auto-fit, minmax(110px,1fr)); gap:10px; margin-bottom:16px;}
+  .stat-box{background:var(--card); border:1px solid #F0E6DE; border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);}
+  .stat-box .stat-label{font-size:11px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
+  .stat-box .stat-num{font-family:'Inter',sans-serif; font-weight:800; font-size:22px; margin-top:2px;}
+  .filter-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;}
+  .filter-chip{
+    background:#fff; border:1.5px solid var(--line); color:var(--ink-soft); font-weight:700; font-size:11.5px;
+    padding:6px 12px; border-radius:20px; cursor:pointer;
+  }
+  .filter-chip.active{background:var(--coral); border-color:var(--coral); color:#fff;}
+  .timeline-delivery-line{
+    position:absolute; top:0; bottom:0; width:0; border-left:2px solid var(--ink);
+    z-index:2;
+  }
+  .timeline-delivery-label{
+    position:absolute; top:-2px; transform:translateX(-50%);
+    font-size:9px; font-weight:800; color:var(--ink); background:#fff; padding:0 3px; white-space:nowrap;
+  }
+  .timeline-dot-emoji{
+    position:absolute; top:50%; transform:translate(-50%,-50%);
+    font-size:15px; line-height:1; cursor:default;
+  }
+  .delivery-field{
+    display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft); font-weight:600;
+    margin-top:6px;
+  }
+  .delivery-field input{
+    font-size:12px; padding:4px 8px; border-radius:7px; border:1.5px solid var(--line);
+    background:#FBFAF8; color:var(--ink); font-family:'JetBrains Mono',monospace;
+  }
+  .delivery-field input:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
+
   .done-date-note{font-size:10.5px; color:var(--green); font-weight:600; margin-top:6px;}
 
   /* ---------- MODAL NUEVO PROYECTO ---------- */
@@ -479,7 +562,7 @@ function newProject(name){
   PHASES.forEach(ph => ph.steps.forEach(st => {
     steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
   }));
-  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), steps };
+  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), deliveryDate: null, steps };
 }
 
 /* ============================================================
@@ -522,6 +605,218 @@ function projectStats(project){
   }
   if(!foundCurrent) currentPhase = PHASES[PHASES.length-1];
   return { total, done, status, currentPhase };
+}
+
+/* ============================================================
+   CRONOGRAMA — utilidades de fechas
+   ============================================================ */
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function stepPlotDate(state){
+  return state.done ? state.doneDate : state.estDate;
+}
+
+function formatTickDate(ms){
+  const d = new Date(ms);
+  return `${MONTHS_ES[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
+}
+
+function computeDateRange(msArray){
+  if(msArray.length === 0) return null;
+  let min = Math.min(...msArray), max = Math.max(...msArray);
+  if(min === max){
+    min -= 1000*60*60*24*20;
+    max += 1000*60*60*24*20;
+  } else {
+    const pad = (max-min) * 0.08;
+    min -= pad; max += pad;
+  }
+  return { min, max };
+}
+
+function datePct(dateStr, range){
+  const ms = new Date(dateStr).getTime();
+  let pct = ((ms - range.min) / (range.max - range.min)) * 100;
+  return Math.max(0, Math.min(100, pct));
+}
+
+function renderTimelineAxis(range){
+  const tickCount = 6;
+  let ticks = '';
+  for(let i=0;i<=tickCount;i++){
+    const ms = range.min + (range.max-range.min)*(i/tickCount);
+    const pct = (i/tickCount)*100;
+    ticks += `<span class="timeline-tick" style="left:${pct}%;">${formatTickDate(ms)}</span>`;
+  }
+  return `<div class="timeline-axis">${ticks}</div>`;
+}
+
+function renderTodayLine(range){
+  const todayMs = new Date(todayStr()).getTime();
+  if(todayMs < range.min || todayMs > range.max) return '';
+  const pct = datePct(todayStr(), range);
+  return `<div class="timeline-today-line" style="left:${pct}%;"><span class="timeline-today-label">Hoy</span></div>`;
+}
+
+/* --- Cronograma por proyecto (una fila por fase) --- */
+function renderProjectTimeline(project){
+  const phaseRows = PHASES.map(phase => {
+    const points = phase.steps
+      .filter(s => project.steps[s.id] && project.steps[s.id].applies)
+      .map(s => {
+        const state = project.steps[s.id];
+        const d = stepPlotDate(state);
+        return d ? { date:d, status: stepStatus(state), name: s.name } : null;
+      })
+      .filter(Boolean);
+    return { phase, points };
+  });
+
+  const allMs = phaseRows.flatMap(r => r.points.map(p => new Date(p.date).getTime())).concat([new Date(todayStr()).getTime()]);
+  if(project.deliveryDate) allMs.push(new Date(project.deliveryDate).getTime());
+  const range = computeDateRange(allMs);
+
+  if(!range || phaseRows.every(r => r.points.length===0)){
+    return `<div class="timeline-card"><div class="timeline-empty">Todavía no hay fechas rellenadas en este proyecto.<br>Añade alguna fecha estimada en el checklist para ver aquí el cronograma.</div></div>`;
+  }
+
+  const rowsHtml = phaseRows.map(r => {
+    if(r.points.length === 0){
+      return `
+        <div class="timeline-row">
+          <div class="timeline-row-label">${r.phase.emoji} ${r.phase.name}</div>
+          <div class="timeline-track"><span class="timeline-empty-row">Sin fechas</span></div>
+        </div>`;
+    }
+    const pcts = r.points.map(p => datePct(p.date, range));
+    const minPct = Math.min(...pcts), maxPct = Math.max(...pcts);
+    const dots = r.points.map((p,i) => `<span class="timeline-dot" style="left:${pcts[i]}%; background:${statusColor(p.status)};" title="${escapeHtml(p.name)} · ${p.date}"></span>`).join('');
+    return `
+      <div class="timeline-row">
+        <div class="timeline-row-label">${r.phase.emoji} ${r.phase.name}</div>
+        <div class="timeline-track">
+          <div class="timeline-line" style="left:${minPct}%; width:${maxPct-minPct}%;"></div>
+          ${dots}
+        </div>
+      </div>`;
+  }).join('');
+
+  const deliveryLineHtml = project.deliveryDate
+    ? `<div class="timeline-delivery-line" style="left:${datePct(project.deliveryDate, range)}%;"><span class="timeline-delivery-label">🏁 Entrega</span></div>`
+    : '';
+
+  return `
+    <div class="timeline-card">
+      <div class="timeline-legend">
+        <div class="timeline-legend-item"><span class="dot" style="background:var(--green);"></span> Hecho</div>
+        <div class="timeline-legend-item"><span class="dot" style="background:var(--amber);"></span> Planificado</div>
+        <div class="timeline-legend-item"><span class="dot" style="background:var(--red);"></span> Sin fecha / retrasado</div>
+        ${project.deliveryDate ? `<div class="timeline-legend-item">🏁 Fecha de entrega</div>` : ''}
+      </div>
+      <div class="timeline-scroll">
+        <div class="timeline-inner">
+          ${renderTimelineAxis(range)}
+          <div class="timeline-body">
+            ${renderTodayLine(range)}
+            ${deliveryLineHtml}
+            ${rowsHtml}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* --- Cronograma general (una fila por proyecto) --- */
+function projectPhaseRepresentativeDates(project){
+  return PHASES.map(phase => {
+    const dates = phase.steps
+      .filter(s => project.steps[s.id] && project.steps[s.id].applies)
+      .map(s => stepPlotDate(project.steps[s.id]))
+      .filter(Boolean);
+    if(dates.length === 0) return null;
+    const maxMs = Math.max(...dates.map(d => new Date(d).getTime()));
+    return { phase, date: new Date(maxMs).toISOString().slice(0,10) };
+  });
+}
+
+function renderGlobalTimeline(filter){
+  const withCategory = projects.map(p => {
+    const stats = projectStats(p);
+    const hasDates = PHASES.some(ph => ph.steps.some(s => p.steps[s.id] && p.steps[s.id].applies && stepPlotDate(p.steps[s.id])));
+    const category = !hasDates ? 'nodate' : stats.status;
+    return { project:p, stats, category };
+  });
+
+  const counts = {
+    red: withCategory.filter(x=>x.category==='red').length,
+    orange: withCategory.filter(x=>x.category==='orange').length,
+    green: withCategory.filter(x=>x.category==='green').length,
+    nodate: withCategory.filter(x=>x.category==='nodate').length,
+  };
+
+  const filtered = filter==='all' ? withCategory : withCategory.filter(x=>x.category===filter);
+
+  const allMs = withCategory.flatMap(x => projectPhaseRepresentativeDates(x.project).filter(Boolean).map(pd=>new Date(pd.date).getTime())).concat([new Date(todayStr()).getTime()]);
+  const range = computeDateRange(allMs);
+
+  const statsHtml = `
+    <div class="summary-stats">
+      <div class="stat-box"><div class="stat-label">Con retrasos</div><div class="stat-num" style="color:var(--red);">${counts.red}</div></div>
+      <div class="stat-box"><div class="stat-label">En curso</div><div class="stat-num" style="color:var(--amber);">${counts.orange}</div></div>
+      <div class="stat-box"><div class="stat-label">Al día</div><div class="stat-num" style="color:var(--green);">${counts.green}</div></div>
+      <div class="stat-box"><div class="stat-label">Sin fechas</div><div class="stat-num" style="color:var(--ink-soft);">${counts.nodate}</div></div>
+    </div>`;
+
+  const chipsHtml = `
+    <div class="filter-chips">
+      <button class="filter-chip ${filter==='all'?'active':''}" data-filter="all">Todos · ${projects.length}</button>
+      <button class="filter-chip ${filter==='red'?'active':''}" data-filter="red">Con retrasos · ${counts.red}</button>
+      <button class="filter-chip ${filter==='orange'?'active':''}" data-filter="orange">En curso · ${counts.orange}</button>
+      <button class="filter-chip ${filter==='green'?'active':''}" data-filter="green">Al día · ${counts.green}</button>
+      <button class="filter-chip ${filter==='nodate'?'active':''}" data-filter="nodate">Sin fechas · ${counts.nodate}</button>
+    </div>`;
+
+  if(!range || filtered.length === 0){
+    return statsHtml + chipsHtml + `<div class="timeline-card"><div class="timeline-empty">No hay proyectos que mostrar con este filtro.</div></div>`;
+  }
+
+  const legendHtml = `<div class="timeline-legend">${PHASES.map(ph => `<div class="timeline-legend-item">${ph.emoji} ${ph.name}</div>`).join('')}</div>`;
+
+  const rowsHtml = filtered.map(({project}) => {
+    const reps = projectPhaseRepresentativeDates(project).filter(Boolean);
+    if(reps.length === 0){
+      return `
+        <div class="timeline-row">
+          <div class="timeline-row-label" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+          <div class="timeline-track"><span class="timeline-empty-row">Sin fechas</span></div>
+        </div>`;
+    }
+    const pcts = reps.map(r => datePct(r.date, range));
+    const minPct = Math.min(...pcts), maxPct = Math.max(...pcts);
+    const dots = reps.map((r,i) => `<span class="timeline-dot-emoji" style="left:${pcts[i]}%;" title="${escapeHtml(project.name)} · ${r.phase.name} · ${r.date}">${r.phase.emoji}</span>`).join('');
+    return `
+      <div class="timeline-row">
+        <div class="timeline-row-label" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+        <div class="timeline-track">
+          <div class="timeline-line" style="left:${minPct}%; width:${maxPct-minPct}%;"></div>
+          ${dots}
+        </div>
+      </div>`;
+  }).join('');
+
+  return statsHtml + chipsHtml + `
+    <div class="timeline-card">
+      ${legendHtml}
+      <div class="timeline-scroll">
+        <div class="timeline-inner">
+          ${renderTimelineAxis(range)}
+          <div class="timeline-body">
+            ${renderTodayLine(range)}
+            ${rowsHtml}
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 /* ============================================================
@@ -613,6 +908,7 @@ async function unlock(){
 
 function ensureProjectsUpToDate(){
   projects.forEach(project => {
+    if(project.deliveryDate === undefined) project.deliveryDate = null;
     PHASES.forEach(ph => ph.steps.forEach(st => {
       if(!project.steps[st.id]){
         project.steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
@@ -671,6 +967,9 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 /* ============================================================
    RENDER: BOARD (vista general)
    ============================================================ */
+let boardTab = 'grid';
+let globalFilter = 'all';
+
 function renderBoard(){
   currentProjectId = null;
   const main = document.getElementById('main');
@@ -686,6 +985,25 @@ function renderBoard(){
         <p>Cuando abras un proyecto nuevo aparecerá aquí, con su checklist de las 5 fases listo para rellenar.</p>
       </div>`;
     document.getElementById('newProjBtn').onclick = createProjectFlow;
+    return;
+  }
+
+  const tabsHtml = `
+    <div class="view-tabs">
+      <button class="view-tab ${boardTab==='grid'?'active':''}" data-boardtab="grid">Tablero</button>
+      <button class="view-tab ${boardTab==='timeline'?'active':''}" data-boardtab="timeline">Cronograma general</button>
+    </div>`;
+
+  if(boardTab === 'timeline'){
+    main.innerHTML = `
+      <div class="board-head">
+        <div><h2>Cronograma general</h2><p>Vista conjunta de los ${projects.length} proyecto${projects.length===1?'':'s'} en seguimiento.</p></div>
+        <button class="new-project-btn" id="newProjBtn">+ Nuevo proyecto</button>
+      </div>
+      ${tabsHtml}
+      ${renderGlobalTimeline(globalFilter)}`;
+    document.getElementById('newProjBtn').onclick = createProjectFlow;
+    bindBoardTabEvents();
     return;
   }
 
@@ -716,9 +1034,11 @@ function renderBoard(){
       <div><h2>Proyectos activos</h2><p>${projects.length} proyecto${projects.length===1?'':'s'} en seguimiento.</p></div>
       <button class="new-project-btn" id="newProjBtn">+ Nuevo proyecto</button>
     </div>
+    ${tabsHtml}
     <div class="project-grid">${cards}</div>`;
 
   document.getElementById('newProjBtn').onclick = createProjectFlow;
+  bindBoardTabEvents();
   main.querySelectorAll('.pcard').forEach(card => {
     card.addEventListener('click', (e) => {
       if(e.target.closest('[data-del]')) return;
@@ -729,6 +1049,22 @@ function renderBoard(){
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       confirmDeleteProject(btn.dataset.del);
+    });
+  });
+}
+
+function bindBoardTabEvents(){
+  const main = document.getElementById('main');
+  main.querySelectorAll('[data-boardtab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      boardTab = btn.dataset.boardtab;
+      renderBoard();
+    });
+  });
+  main.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      globalFilter = btn.dataset.filter;
+      renderBoard();
     });
   });
 }
@@ -810,11 +1146,30 @@ function escapeHtml(str){
    RENDER: DETALLE DE PROYECTO
    ============================================================ */
 let collapsedPhases = {};
+let detailTab = 'checklist';
 
 function openProject(id){
   currentProjectId = id;
   collapsedPhases = {};
+  detailTab = 'checklist';
   renderDetail();
+}
+
+function renderDeliveryField(project){
+  return `
+    <div class="delivery-field">
+      🏁 Fecha de entrega:
+      <input type="date" id="projDelivery" value="${project.deliveryDate||''}">
+    </div>`;
+}
+function bindDeliveryField(project){
+  const input = document.getElementById('projDelivery');
+  if(!input) return;
+  input.addEventListener('change', async () => {
+    project.deliveryDate = input.value || null;
+    await saveProjects();
+    renderDetail();
+  });
 }
 
 function renderDetail(){
@@ -822,6 +1177,32 @@ function renderDetail(){
   if(!project){ renderBoard(); return; }
   const main = document.getElementById('main');
   const stats = projectStats(project);
+
+  const tabsHtml = `
+    <div class="view-tabs">
+      <button class="view-tab ${detailTab==='checklist'?'active':''}" data-detailtab="checklist">Checklist</button>
+      <button class="view-tab ${detailTab==='timeline'?'active':''}" data-detailtab="timeline">Cronograma</button>
+    </div>`;
+
+  if(detailTab === 'timeline'){
+    main.innerHTML = `
+      <button class="back-btn" id="backBtn">${BACK_SVG} Volver a proyectos</button>
+      <div class="detail-head">
+        <div class="detail-title-wrap">
+          <div class="detail-title" style="border:none;">${escapeHtml(project.name)}</div>
+          <div class="detail-meta">Creado el ${project.createdAt}</div>
+          ${renderDeliveryField(project)}
+        </div>
+      </div>
+      ${tabsHtml}
+      ${renderProjectTimeline(project)}`;
+    document.getElementById('backBtn').onclick = renderBoard;
+    main.querySelectorAll('[data-detailtab]').forEach(btn => {
+      btn.addEventListener('click', () => { detailTab = btn.dataset.detailtab; renderDetail(); });
+    });
+    bindDeliveryField(project);
+    return;
+  }
 
   const phasesHtml = PHASES.map(phase => {
     const pstats = phaseStats(project, phase);
@@ -846,21 +1227,28 @@ function renderDetail(){
       <div class="detail-title-wrap">
         <input class="detail-title" id="projTitle" value="${escapeHtml(project.name)}">
         <div class="detail-meta">Creado el ${project.createdAt}</div>
+        ${renderDeliveryField(project)}
       </div>
       <div class="overall-badge" style="background:${statusColor(stats.status)==='var(--green)'?'var(--green-bg)':statusColor(stats.status)==='var(--amber)'?'var(--amber-bg)':'var(--red-bg)'}; color:${statusColor(stats.status)};">
         <span class="dot" style="background:${statusColor(stats.status)};"></span>
         ${stats.done}/${stats.total} pasos completados
       </div>
     </div>
+    ${tabsHtml}
     ${phasesHtml}`;
 
   document.getElementById('backBtn').onclick = renderBoard;
+
+  main.querySelectorAll('[data-detailtab]').forEach(btn => {
+    btn.addEventListener('click', () => { detailTab = btn.dataset.detailtab; renderDetail(); });
+  });
 
   const titleInput = document.getElementById('projTitle');
   titleInput.addEventListener('change', async () => {
     project.name = titleInput.value.trim() || 'Proyecto sin nombre';
     await saveProjects();
   });
+  bindDeliveryField(project);
 
   main.querySelectorAll('[data-toggle]').forEach(head => {
     head.addEventListener('click', () => {
