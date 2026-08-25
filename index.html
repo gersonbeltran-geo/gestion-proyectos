@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --coral:#E86457;
@@ -372,6 +374,22 @@
 
 <script>
 /* ============================================================
+   CONEXIÓN A FIREBASE (playgo-gestion-proyectos)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB-keY-xfV_WOLcivo1XPm_XhnsySN0GRA",
+  authDomain: "playgo-gestion-proyectos.firebaseapp.com",
+  projectId: "playgo-gestion-proyectos",
+  storageBucket: "playgo-gestion-proyectos.firebasestorage.app",
+  messagingSenderId: "472884277448",
+  appId: "1:472884277448:web:1e68510a98ee9a30c4b5fd"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const DATA_DOC = db.collection('gestion_proyectos').doc('data');
+const CONFIG_DOC = db.collection('gestion_proyectos').doc('config');
+
+/* ============================================================
    DATOS BASE
    ============================================================ */
 const TEAM = ["Jordi","Gersón","Juan Pedro","Juan Manuel","Joan","Jorge","Óscar","Gabriela","André","Agus","Fernando"];
@@ -432,27 +450,25 @@ let projects = [];
 let currentProjectId = null;
 let sharedLinks = {};
 
-async function loadProjects(){
+async function loadAllData(){
   try{
-    const raw = localStorage.getItem('pg_projects_v1');
-    projects = raw ? JSON.parse(raw) : [];
-  }catch(e){ projects = []; }
+    const snap = await DATA_DOC.get();
+    const d = snap.exists ? snap.data() : {};
+    projects = d.projects || [];
+    sharedLinks = d.sharedLinks || {};
+  }catch(e){
+    console.error('Error cargando datos de Firebase', e);
+    projects = []; sharedLinks = {};
+  }
 }
-async function saveProjects(){
-  try{ localStorage.setItem('pg_projects_v1', JSON.stringify(projects)); }
-  catch(e){ console.error('Error guardando proyectos', e); }
+async function saveAllData(){
+  try{ await DATA_DOC.set({ projects, sharedLinks }, { merge:true }); }
+  catch(e){ console.error('Error guardando datos en Firebase', e); }
 }
-
-async function loadSharedLinks(){
-  try{
-    const raw = localStorage.getItem('pg_shared_links_v1');
-    sharedLinks = raw ? JSON.parse(raw) : {};
-  }catch(e){ sharedLinks = {}; }
-}
-async function saveSharedLinks(){
-  try{ localStorage.setItem('pg_shared_links_v1', JSON.stringify(sharedLinks)); }
-  catch(e){ console.error('Error guardando enlaces comunes', e); }
-}
+async function loadProjects(){ /* legacy alias, ver loadAllData() */ }
+async function saveProjects(){ return saveAllData(); }
+async function loadSharedLinks(){ /* legacy alias, ver loadAllData() */ }
+async function saveSharedLinks(){ return saveAllData(); }
 
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 
@@ -514,7 +530,8 @@ async function renderGate(){
   const gate = document.getElementById('gate');
   let hasPassword = false;
   try{
-    hasPassword = !!localStorage.getItem('pg_pm_password');
+    const snap = await CONFIG_DOC.get();
+    hasPassword = !!(snap.exists && snap.data().password);
   }catch(e){ hasPassword = false; }
 
   gate.innerHTML = `
@@ -529,7 +546,7 @@ async function renderGate(){
       ${!hasPassword ? `<div class="gate-field"><label>Confirmar contraseña</label><input type="password" id="gatePass2" placeholder="••••••••"></div>` : ''}
       <button class="gate-submit" id="gateSubmit">${hasPassword ? 'Acceder' : 'Crear y acceder'}</button>
       <div class="gate-error" id="gateError"></div>
-      <p class="gate-note">La contraseña se guarda solo en este navegador, sin cifrar. No compartas este equipo con personas ajenas al proyecto.</p>
+      <p class="gate-note">La contraseña es compartida por el equipo y se guarda en la base de datos del proyecto, sin cifrar. No la compartas fuera del equipo.</p>
       <p class="gate-note" style="margin-top:10px;">
         <a href="#" id="importLink" style="color:var(--coral-deep); font-weight:700; text-decoration:underline;">¿Tienes una copia de seguridad? Impórtala aquí</a>
       </p>
@@ -548,11 +565,12 @@ async function renderGate(){
     try{
       const text = await file.text();
       const data = JSON.parse(text);
-      if(data.projects) localStorage.setItem('pg_projects_v1', JSON.stringify(data.projects));
-      if(data.sharedLinks) localStorage.setItem('pg_shared_links_v1', JSON.stringify(data.sharedLinks));
-      localStorage.setItem('pg_shared_links_migrated_v1', 'yes');
+      const payload = {};
+      if(data.projects) payload.projects = data.projects;
+      if(data.sharedLinks) payload.sharedLinks = data.sharedLinks;
+      await DATA_DOC.set(payload, { merge:true });
       status.style.color = 'var(--green)';
-      status.textContent = '✓ Copia importada correctamente. Ya puedes acceder con tu contraseña.';
+      status.textContent = '✓ Copia importada correctamente en la base de datos compartida. Ya puedes acceder con la contraseña.';
     }catch(err){
       status.style.color = 'var(--red)';
       status.textContent = 'El archivo no es una copia de seguridad válida.';
@@ -566,14 +584,15 @@ async function renderGate(){
       const pass2 = document.getElementById('gatePass2').value;
       if(!pass || pass.length < 4){ err.textContent = 'La contraseña debe tener al menos 4 caracteres.'; return; }
       if(pass !== pass2){ err.textContent = 'Las contraseñas no coinciden.'; return; }
-      try{ localStorage.setItem('pg_pm_password', pass); }catch(e){ err.textContent = 'Error al guardar. Inténtalo de nuevo.'; return; }
+      try{ await CONFIG_DOC.set({ password: pass }, { merge:true }); }catch(e){ err.textContent = 'Error al guardar. Comprueba tu conexión e inténtalo de nuevo.'; return; }
       unlock();
     } else {
       try{
-        const saved = localStorage.getItem('pg_pm_password');
+        const snap = await CONFIG_DOC.get();
+        const saved = snap.exists ? snap.data().password : null;
         if(saved === pass){ unlock(); }
         else { err.textContent = 'Contraseña incorrecta.'; }
-      }catch(e){ err.textContent = 'Error al verificar. Inténtalo de nuevo.'; }
+      }catch(e){ err.textContent = 'Error al verificar. Comprueba tu conexión e inténtalo de nuevo.'; }
     }
   };
   gate.querySelectorAll('input').forEach(inp => {
@@ -584,8 +603,7 @@ async function renderGate(){
 async function unlock(){
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  await loadProjects();
-  await loadSharedLinks();
+  await loadAllData();
   ensureProjectsUpToDate();
   await saveProjects();
   await migrateSharedLinks();
