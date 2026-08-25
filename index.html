@@ -408,7 +408,8 @@ const PHASES = [
   { id:"desarrollar", name:"Desarrollar", emoji:"🛠️", color:"var(--teal)",
     steps:[
       { id:"d1", name:"Reparto de equipo y tareas", tool:"Jira (filtrado por proyecto)", instr:"Asignar tareas a programación, contenidos y arte.", assignable:true, personalized:true },
-      { id:"d2", name:"Tabla de contenidos", tool:"CMS", instr:"Elaborar tabla de contenidos del proyecto.", assignable:true },
+      { id:"d1c", name:"Tabla de contenidos", tool:"Excel", instr:"Elaborar la tabla de contenidos del proyecto.", assignable:true, personalized:true },
+      { id:"d2", name:"Contenidos", tool:"CMS", instr:"Elaborar los contenidos del proyecto.", assignable:true },
       { id:"d3", name:"Assets de arte", tool:"Blender", instr:"Producir/recopilar assets gráficos.", assignable:true },
       { id:"d4", name:"Arquitectura de programación", tool:"Unity", instr:"Definir arquitectura técnica del desarrollo.", assignable:true },
       { id:"d5", name:"MVP 1", tool:"APK (Google) / TestFlight (Apple)", instr:"Generar y compartir build de prueba.", assignable:true, milestone:true },
@@ -418,8 +419,8 @@ const PHASES = [
   { id:"publicar", name:"Publicar", emoji:"🚀", color:"var(--amber)",
     steps:[
       { id:"p1", name:"Compilación final", tool:"APK (Google) / TestFlight (Apple)", instr:"Generar build final para publicación.", assignable:true },
-      { id:"p2", name:"Configuración de tiendas", tool:"Google Play Console + App Store Connect", instr:"Configurar ficha de app en ambas tiendas.", assignable:true },
-      { id:"p3", name:"Contenido de ficha", tool:"Google Play Console + App Store Connect", instr:"Rellenar textos e imágenes de la ficha.", assignable:true },
+      { id:"p2", name:"Configuración de tiendas", tool:"Google Play Console + App Store Connect", instr:"Configurar ficha de app en ambas tiendas: textos, imágenes y datos.", assignable:true,
+        links:[ { key:"gplay", label:"Google Play Console" }, { key:"appstore", label:"App Store Connect" } ] },
       { id:"p4", name:"Envío a revisión", tool:"Google Play Console + App Store Connect", instr:"Enviar app a revisión en ambas plataformas.", assignable:true },
     ]},
   { id:"promocionar", name:"Promocionar", emoji:"📣", color:"var(--coral-deep)",
@@ -878,11 +879,31 @@ function renderStepRow(project, step){
   const state = project.steps[step.id];
   const status = stepStatus(state);
   const isMilestone = !!step.milestone;
-  const effectiveUrl = step.personalized ? (state.url||'') : (sharedLinks[step.id]||'');
-  const linkDisabled = !effectiveUrl;
   const scopeTag = step.personalized
     ? `<span class="link-scope-tag personal">Personalizado</span>`
     : `<span class="link-scope-tag common">Enlace común</span>`;
+
+  let linksHtml = '';
+  if(step.links){
+    linksHtml = step.links.map(link => {
+      const sharedKey = `${step.id}__${link.key}`;
+      const url = sharedLinks[sharedKey] || '';
+      return `
+        <div class="step-link-row" style="width:100%;">
+          <span class="step-date-label" style="min-width:110px;">${escapeHtml(link.label)}</span>
+          <input type="text" placeholder="Enlace común a todos los proyectos" value="${escapeHtml(url)}" data-shared-url="${sharedKey}">
+          <a class="step-open ${!url?'disabled':''}" href="${url||'#'}" target="_blank" rel="noopener">Abrir ↗</a>
+        </div>`;
+    }).join('');
+  } else {
+    const effectiveUrl = step.personalized ? (state.url||'') : (sharedLinks[step.id]||'');
+    const linkDisabled = !effectiveUrl;
+    linksHtml = `
+      <div class="step-link-row">
+        <input type="text" placeholder="${step.personalized ? 'Enlace de este proyecto' : 'Enlace común a todos los proyectos'}" value="${escapeHtml(effectiveUrl)}" ${step.personalized ? `data-url="${step.id}"` : `data-shared-url="${step.id}"`}>
+        <a class="step-open ${linkDisabled?'disabled':''}" href="${effectiveUrl||'#'}" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>`;
+  }
 
   let assigneesHtml = '';
   if(step.assignable){
@@ -921,18 +942,17 @@ function renderStepRow(project, step){
           ${scopeTag}
         </div>
         <div class="step-instr">${escapeHtml(step.instr)}</div>
-        <div class="step-controls">
-          <div class="step-link-row">
-            <input type="text" placeholder="${step.personalized ? 'Enlace de este proyecto' : 'Enlace común a todos los proyectos'}" value="${escapeHtml(effectiveUrl)}" ${step.personalized ? `data-url="${step.id}"` : `data-shared-url="${step.id}"`}>
-            <a class="step-open ${linkDisabled?'disabled':''}" href="${effectiveUrl||'#'}" target="_blank" rel="noopener">Abrir ↗</a>
+        <div class="step-controls" style="${step.links ? 'flex-direction:column; align-items:stretch;' : ''}">
+          ${linksHtml}
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <span class="step-date-label">Estimada</span>
+            <input type="date" class="step-date" value="${state.estDate||''}" data-est="${step.id}">
+            ${state.done ? `<span class="done-date-note">✓ ${state.doneDate||''}</span>` : ''}
+            <label class="step-toggle-apply">
+              <input type="checkbox" data-applies="${step.id}" ${state.applies?'checked':''}>
+              Aplica a este proyecto
+            </label>
           </div>
-          <span class="step-date-label">Estimada</span>
-          <input type="date" class="step-date" value="${state.estDate||''}" data-est="${step.id}">
-          ${state.done ? `<span class="done-date-note">✓ ${state.doneDate||''}</span>` : ''}
-          <label class="step-toggle-apply">
-            <input type="checkbox" data-applies="${step.id}" ${state.applies?'checked':''}>
-            Aplica a este proyecto
-          </label>
         </div>
         ${assigneesHtml}
       </div>
