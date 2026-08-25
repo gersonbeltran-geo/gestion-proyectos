@@ -394,6 +394,42 @@
   }
   .delivery-field input:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
 
+  /* ---------- AVATARES DE EQUIPO EN TARJETA ---------- */
+  .pcard-team{display:flex; justify-content:flex-end; gap:0; margin-bottom:2px;}
+  .avatar-bubble{
+    width:22px; height:22px; border-radius:50%; background:var(--violet-bg); color:var(--violet);
+    font-family:'Inter',sans-serif; font-weight:700; font-size:9px;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid #fff; margin-left:-6px; flex-shrink:0;
+  }
+  .avatar-bubble:first-child{margin-left:0;}
+
+  /* ---------- VISTA EQUIPO ---------- */
+  .team-chip-row{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:18px;}
+  .team-chip{
+    display:flex; align-items:center; gap:7px; background:#fff; border:1.5px solid var(--line);
+    color:var(--ink); font-weight:700; font-size:12.5px; padding:7px 12px 7px 7px; border-radius:20px; cursor:pointer;
+  }
+  .team-chip.active{background:var(--violet-bg); border-color:var(--violet); color:var(--violet);}
+  .team-chip .avatar-bubble{margin-left:0;}
+  .team-chip .count{font-weight:500; opacity:.75;}
+  .team-task-group{
+    background:var(--card); border-radius:16px; box-shadow:var(--shadow); border:1px solid #F0E6DE;
+    padding:16px 18px; margin-bottom:12px;
+  }
+  .team-task-group h4{
+    font-family:'Inter',sans-serif; font-weight:700; font-size:14px; margin:0 0 10px; cursor:pointer;
+  }
+  .team-task-group h4:hover{color:var(--coral-deep);}
+  .team-task-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid #F2E9E2; font-size:12.5px;
+  }
+  .team-task-row:first-of-type{border-top:none;}
+  .team-task-row .tname{font-weight:600; flex:1; min-width:0;}
+  .team-task-row .tname.done{text-decoration:line-through; color:var(--ink-soft);}
+  .team-task-row .tphase{color:var(--ink-soft); white-space:nowrap; font-size:11.5px;}
+  .team-task-row .tdate{font-family:'JetBrains Mono',monospace; color:var(--ink-soft); font-size:11px; white-space:nowrap;}
+
   .done-date-note{font-size:10.5px; color:var(--green); font-weight:600; margin-top:6px;}
 
   /* ---------- MODAL NUEVO PROYECTO ---------- */
@@ -611,6 +647,23 @@ function projectStats(project){
    CRONOGRAMA — utilidades de fechas
    ============================================================ */
 const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function initials(name){
+  const parts = name.trim().split(/\s+/);
+  if(parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0,2).toUpperCase();
+}
+
+function phaseAssignees(project, phase){
+  const set = new Set();
+  phase.steps.forEach(s => {
+    if(!s.assignable) return;
+    const state = project.steps[s.id];
+    if(!state || !state.applies) return;
+    state.assignees.forEach(a => set.add(a));
+  });
+  return Array.from(set);
+}
 
 function stepPlotDate(state){
   return state.done ? state.doneDate : state.estDate;
@@ -969,6 +1022,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
    ============================================================ */
 let boardTab = 'grid';
 let globalFilter = 'all';
+let selectedTeamMember = null;
 
 function renderBoard(){
   currentProjectId = null;
@@ -992,6 +1046,7 @@ function renderBoard(){
     <div class="view-tabs">
       <button class="view-tab ${boardTab==='grid'?'active':''}" data-boardtab="grid">Tablero</button>
       <button class="view-tab ${boardTab==='timeline'?'active':''}" data-boardtab="timeline">Cronograma general</button>
+      <button class="view-tab ${boardTab==='team'?'active':''}" data-boardtab="team">Equipo</button>
     </div>`;
 
   if(boardTab === 'timeline'){
@@ -1007,15 +1062,31 @@ function renderBoard(){
     return;
   }
 
+  if(boardTab === 'team'){
+    main.innerHTML = `
+      <div class="board-head">
+        <div><h2>Equipo</h2><p>Selecciona una persona para ver sus tareas asignadas en todos los proyectos.</p></div>
+        <button class="new-project-btn" id="newProjBtn">+ Nuevo proyecto</button>
+      </div>
+      ${tabsHtml}
+      ${renderTeamView(selectedTeamMember)}`;
+    document.getElementById('newProjBtn').onclick = createProjectFlow;
+    bindBoardTabEvents();
+    return;
+  }
+
   const cards = projects.map(p => {
     const stats = projectStats(p);
     const pct = stats.total ? Math.round((stats.done/stats.total)*100) : 0;
+    const team = phaseAssignees(p, stats.currentPhase);
+    const avatarsHtml = team.length ? `<div class="pcard-team">${team.map(n => `<span class="avatar-bubble" title="${escapeHtml(n)}">${initials(n)}</span>`).join('')}</div>` : '';
     return `
       <div class="pcard" data-id="${p.id}">
         <div class="pcard-top">
           <div class="pcard-title">${escapeHtml(p.name)}</div>
           <button class="pcard-del" data-del="${p.id}" title="Eliminar proyecto">${TRASH_SVG}</button>
         </div>
+        ${avatarsHtml}
         <div class="pcard-phase">
           <span>${stats.currentPhase.emoji}</span>
           <span>${stats.currentPhase.name}</span>
@@ -1067,6 +1138,72 @@ function bindBoardTabEvents(){
       renderBoard();
     });
   });
+  main.querySelectorAll('[data-team-member]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedTeamMember = btn.dataset.teamMember;
+      renderBoard();
+    });
+  });
+  main.querySelectorAll('[data-open-project]').forEach(el => {
+    el.addEventListener('click', () => openProject(el.dataset.openProject));
+  });
+}
+
+function renderTeamView(selected){
+  const counts = {};
+  TEAM.forEach(n => counts[n] = 0);
+  projects.forEach(p => {
+    PHASES.forEach(ph => ph.steps.forEach(s => {
+      if(!s.assignable) return;
+      const state = p.steps[s.id];
+      if(!state || !state.applies) return;
+      state.assignees.forEach(a => { if(counts[a] !== undefined) counts[a]++; });
+    }));
+  });
+
+  const chipsHtml = `
+    <div class="team-chip-row">
+      ${TEAM.map(name => `
+        <button class="team-chip ${selected===name?'active':''}" data-team-member="${escapeHtml(name)}">
+          <span class="avatar-bubble">${initials(name)}</span>
+          ${escapeHtml(name)} <span class="count">· ${counts[name]}</span>
+        </button>`).join('')}
+    </div>`;
+
+  if(!selected){
+    return chipsHtml + `<div class="timeline-card"><div class="timeline-empty">Elige una persona arriba para ver sus tareas asignadas en todos los proyectos.</div></div>`;
+  }
+
+  const groups = [];
+  projects.forEach(p => {
+    const tasks = [];
+    PHASES.forEach(ph => ph.steps.forEach(s => {
+      if(!s.assignable) return;
+      const state = p.steps[s.id];
+      if(!state || !state.applies) return;
+      if(!state.assignees.includes(selected)) return;
+      tasks.push({ phase:ph, step:s, state });
+    }));
+    if(tasks.length) groups.push({ project:p, tasks });
+  });
+
+  if(groups.length === 0){
+    return chipsHtml + `<div class="timeline-card"><div class="timeline-empty">${escapeHtml(selected)} no tiene tareas asignadas todavía.</div></div>`;
+  }
+
+  const groupsHtml = groups.map(g => `
+    <div class="team-task-group">
+      <h4 data-open-project="${g.project.id}">${escapeHtml(g.project.name)} (${g.tasks.length})</h4>
+      ${g.tasks.map(t => `
+        <div class="team-task-row">
+          <span class="dot" style="background:${statusColor(stepStatus(t.state))};"></span>
+          <span class="tname ${t.state.done?'done':''}">${escapeHtml(t.step.name)}</span>
+          <span class="tphase">${t.phase.emoji} ${t.phase.name}</span>
+          <span class="tdate">${t.state.done ? ('✓ '+(t.state.doneDate||'')) : (t.state.estDate||'sin fecha')}</span>
+        </div>`).join('')}
+    </div>`).join('');
+
+  return chipsHtml + groupsHtml;
 }
 
 function createProjectFlow(){
