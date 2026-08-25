@@ -357,6 +357,10 @@
       </div>
     </div>
     <div class="bar-actions">
+      <button class="bar-btn" id="exportBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
+        Exportar copia
+      </button>
       <button class="bar-btn" id="lockBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         Bloquear
@@ -526,7 +530,34 @@ async function renderGate(){
       <button class="gate-submit" id="gateSubmit">${hasPassword ? 'Acceder' : 'Crear y acceder'}</button>
       <div class="gate-error" id="gateError"></div>
       <p class="gate-note">La contraseña se guarda solo en este navegador, sin cifrar. No compartas este equipo con personas ajenas al proyecto.</p>
+      <p class="gate-note" style="margin-top:10px;">
+        <a href="#" id="importLink" style="color:var(--coral-deep); font-weight:700; text-decoration:underline;">¿Tienes una copia de seguridad? Impórtala aquí</a>
+      </p>
+      <p class="gate-note" id="importStatus" style="color:var(--green); font-weight:700;"></p>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
     </div>`;
+
+  document.getElementById('importLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const status = document.getElementById('importStatus');
+    if(!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(data.projects) localStorage.setItem('pg_projects_v1', JSON.stringify(data.projects));
+      if(data.sharedLinks) localStorage.setItem('pg_shared_links_v1', JSON.stringify(data.sharedLinks));
+      localStorage.setItem('pg_shared_links_migrated_v1', 'yes');
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Copia importada correctamente. Ya puedes acceder con tu contraseña.';
+    }catch(err){
+      status.style.color = 'var(--red)';
+      status.textContent = 'El archivo no es una copia de seguridad válida.';
+    }
+  });
 
   document.getElementById('gateSubmit').onclick = async () => {
     const pass = document.getElementById('gatePass').value;
@@ -599,6 +630,23 @@ document.getElementById('lockBtn').addEventListener('click', () => {
   const g = document.getElementById('gate');
   g.style.display = 'flex';
   renderGate();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    projects: projects,
+    sharedLinks: sharedLinks
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gestion-proyectos-copia-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 /* ============================================================
