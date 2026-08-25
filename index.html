@@ -430,23 +430,23 @@ let sharedLinks = {};
 
 async function loadProjects(){
   try{
-    const res = await window.storage.get('pg_projects_v1', false);
-    projects = res ? JSON.parse(res.value) : [];
+    const raw = localStorage.getItem('pg_projects_v1');
+    projects = raw ? JSON.parse(raw) : [];
   }catch(e){ projects = []; }
 }
 async function saveProjects(){
-  try{ await window.storage.set('pg_projects_v1', JSON.stringify(projects), false); }
+  try{ localStorage.setItem('pg_projects_v1', JSON.stringify(projects)); }
   catch(e){ console.error('Error guardando proyectos', e); }
 }
 
 async function loadSharedLinks(){
   try{
-    const res = await window.storage.get('pg_shared_links_v1', false);
-    sharedLinks = res ? JSON.parse(res.value) : {};
+    const raw = localStorage.getItem('pg_shared_links_v1');
+    sharedLinks = raw ? JSON.parse(raw) : {};
   }catch(e){ sharedLinks = {}; }
 }
 async function saveSharedLinks(){
-  try{ await window.storage.set('pg_shared_links_v1', JSON.stringify(sharedLinks), false); }
+  try{ localStorage.setItem('pg_shared_links_v1', JSON.stringify(sharedLinks)); }
   catch(e){ console.error('Error guardando enlaces comunes', e); }
 }
 
@@ -510,8 +510,7 @@ async function renderGate(){
   const gate = document.getElementById('gate');
   let hasPassword = false;
   try{
-    const res = await window.storage.get('pg_pm_password', false);
-    hasPassword = !!(res && res.value);
+    hasPassword = !!localStorage.getItem('pg_pm_password');
   }catch(e){ hasPassword = false; }
 
   gate.innerHTML = `
@@ -536,12 +535,12 @@ async function renderGate(){
       const pass2 = document.getElementById('gatePass2').value;
       if(!pass || pass.length < 4){ err.textContent = 'La contraseña debe tener al menos 4 caracteres.'; return; }
       if(pass !== pass2){ err.textContent = 'Las contraseñas no coinciden.'; return; }
-      try{ await window.storage.set('pg_pm_password', pass, false); }catch(e){ err.textContent = 'Error al guardar. Inténtalo de nuevo.'; return; }
+      try{ localStorage.setItem('pg_pm_password', pass); }catch(e){ err.textContent = 'Error al guardar. Inténtalo de nuevo.'; return; }
       unlock();
     } else {
       try{
-        const res = await window.storage.get('pg_pm_password', false);
-        if(res && res.value === pass){ unlock(); }
+        const saved = localStorage.getItem('pg_pm_password');
+        if(saved === pass){ unlock(); }
         else { err.textContent = 'Contraseña incorrecta.'; }
       }catch(e){ err.textContent = 'Error al verificar. Inténtalo de nuevo.'; }
     }
@@ -575,8 +574,7 @@ function ensureProjectsUpToDate(){
 async function migrateSharedLinks(){
   let already = false;
   try{
-    const res = await window.storage.get('pg_shared_links_migrated_v1', false);
-    already = !!(res && res.value === 'yes');
+    already = localStorage.getItem('pg_shared_links_migrated_v1') === 'yes';
   }catch(e){ already = false; }
   if(already) return;
 
@@ -592,7 +590,7 @@ async function migrateSharedLinks(){
   }));
 
   if(changed) await saveSharedLinks();
-  try{ await window.storage.set('pg_shared_links_migrated_v1', 'yes', false); }
+  try{ localStorage.setItem('pg_shared_links_migrated_v1', 'yes'); }
   catch(e){ /* ignore */ }
 }
 
