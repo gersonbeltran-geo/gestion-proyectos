@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Proyectos · Play&amp;go experience</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --coral:#E86457;
+    --coral-deep:#A83E33;
+    --coral-soft:#F7DAD5;
+    --ink:#221D1B;
+    --ink-soft:#6B625D;
+    --cream:#FAF6F2;
+    --card:#FFFFFF;
+    --teal:#1F4B4D;
+    --amber:#B96E12;
+    --amber-bg:#FBEDD9;
+    --violet:#6B5B95;
+    --violet-bg:#EFEAF6;
+    --line:#E7DAD1;
+    --red:#C9463A;
+    --red-bg:#FBE4E1;
+    --green:#4C8C6B;
+    --green-bg:#E3EFE7;
+    --shadow: 0 1px 2px rgba(34,29,27,.04), 0 6px 18px -10px rgba(34,29,27,.20);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Manrope',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  ::selection{background:var(--coral-soft);}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  input,select{font-family:inherit;}
+
+  /* ---------- HEADER ---------- */
+  header.bar{
+    background:var(--coral);
+    color:#fff;
+    padding:14px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .bar-left{display:flex; align-items:center; gap:14px;}
+  .bar-logo{
+    width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    color:var(--coral); font-weight:800; font-family:'Inter',sans-serif; font-size:15px;
+  }
+  .bar-left h1{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .bar-left span.sub{
+    display:block;
+    font-size:12px;
+    color:#FFE4DE;
+    font-weight:500;
+    margin-top:1px;
+  }
+  .bar-actions{display:flex; align-items:center; gap:8px;}
+  .bar-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.3);
+    color:#fff;
+    font-weight:700; font-size:12.5px;
+    padding:8px 13px;
+    border-radius:9px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .bar-btn:hover{background:rgba(255,255,255,.28);}
+
+  main{
+    flex:1;
+    padding:20px 24px 60px;
+    max-width:1300px;
+    width:100%;
+    margin:0 auto;
+  }
+
+  /* ---------- LOGIN ---------- */
+  .gate-wrap{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .gate-card{
+    background:var(--card);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    border:1px solid #F0E6DE;
+    padding:36px 32px;
+    max-width:360px;
+    width:100%;
+    text-align:center;
+  }
+  .gate-logo{
+    width:52px; height:52px; border-radius:14px; margin:0 auto 16px;
+    background:var(--coral); display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:800; font-family:'Inter',sans-serif; font-size:19px;
+  }
+  .gate-card h2{
+    font-family:'Inter',sans-serif; font-weight:700; font-size:19px; margin:0 0 4px;
+  }
+  .gate-card p.gate-sub{
+    color:var(--ink-soft); font-size:13px; margin:0 0 22px; line-height:1.5;
+  }
+  .gate-field{
+    display:flex; flex-direction:column; gap:6px; text-align:left; margin-bottom:14px;
+  }
+  .gate-field label{font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em;}
+  .gate-field input{
+    font-size:14px; padding:10px 12px; border-radius:9px;
+    border:1.5px solid var(--line); background:#FBFAF8; color:var(--ink);
+  }
+  .gate-field input:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
+  .gate-submit{
+    width:100%; background:var(--coral); border:none; color:#fff;
+    font-weight:700; font-size:14px; padding:11px; border-radius:9px; cursor:pointer;
+    margin-top:4px;
+  }
+  .gate-submit:hover{background:var(--coral-deep);}
+  .gate-error{color:var(--red); font-size:12px; margin-top:10px; min-height:14px; font-weight:600;}
+  .gate-note{font-size:10.5px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
+
+  /* ---------- BOARD ---------- */
+  .board-head{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    margin-bottom:18px; flex-wrap:wrap;
+  }
+  .board-head h2{font-family:'Inter',sans-serif; font-weight:700; font-size:20px; margin:0;}
+  .board-head p{color:var(--ink-soft); font-size:13px; margin:2px 0 0;}
+  .new-project-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--ink); color:#fff; border:none;
+    font-weight:700; font-size:13px; padding:10px 16px; border-radius:9px; cursor:pointer;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .new-project-btn:hover{background:var(--coral-deep); transform:translateY(-1px);}
+
+  .project-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;
+  }
+  .pcard{
+    background:var(--card); border-radius:var(--radius); padding:16px;
+    box-shadow:var(--shadow); border:1px solid #F0E6DE;
+    display:flex; flex-direction:column; gap:11px; cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .pcard:hover{transform:translateY(-2px); box-shadow:0 4px 8px rgba(34,29,27,.08), 0 14px 26px -12px rgba(34,29,27,.24);}
+  .pcard-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  .pcard-title{font-family:'Inter',sans-serif; font-weight:700; font-size:15px; line-height:1.3; flex:1; min-width:0; word-break:break-word;}
+  .pcard-del{
+    background:none; border:none; color:var(--ink-soft); cursor:pointer; padding:2px;
+    opacity:.55; flex-shrink:0; border-radius:6px;
+  }
+  .pcard-del:hover{opacity:1; color:var(--red); background:var(--red-bg);}
+  .pcard-phase{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-soft); font-weight:600;}
+  .dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .pcard-bar-track{height:6px; border-radius:4px; background:#F0E6DE; overflow:hidden;}
+  .pcard-bar-fill{height:100%; border-radius:4px; transition:width .25s ease;}
+  .pcard-foot{display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--ink-soft);}
+  .pcard-foot .steps-count{font-family:'JetBrains Mono',monospace; font-weight:600;}
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--ink-soft);
+  }
+  .empty-state .emoji{font-size:34px; margin-bottom:10px;}
+  .empty-state p{font-size:14px; margin:4px 0 0;}
+
+  /* ---------- DETAIL VIEW ---------- */
+  .back-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:none; border:none; color:var(--ink-soft); font-weight:700; font-size:13px;
+    cursor:pointer; padding:6px 0; margin-bottom:10px;
+  }
+  .back-btn:hover{color:var(--coral-deep);}
+  .detail-head{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:6px; flex-wrap:wrap;
+  }
+  .detail-title-wrap{flex:1; min-width:220px;}
+  .detail-title{
+    font-family:'Inter',sans-serif; font-weight:700; font-size:23px;
+    border:none; background:none; color:var(--ink); padding:2px 0; width:100%;
+    border-bottom:2px solid transparent;
+  }
+  .detail-title:focus{outline:none; border-bottom-color:var(--coral);}
+  .detail-meta{color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
+  .overall-badge{
+    display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:10px;
+    font-weight:700; font-size:13px; white-space:nowrap;
+  }
+
+  .phase-section{
+    background:var(--card); border-radius:16px; box-shadow:var(--shadow); border:1px solid #F0E6DE;
+    margin-top:14px; overflow:hidden;
+  }
+  .phase-head{
+    display:flex; align-items:center; gap:12px; padding:15px 18px; cursor:pointer;
+    user-select:none;
+  }
+  .phase-emoji{font-size:19px; flex-shrink:0;}
+  .phase-name{font-family:'Inter',sans-serif; font-weight:700; font-size:15px; flex:1;}
+  .phase-progress{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-soft); font-weight:600;}
+  .phase-caret{transition:transform .18s ease; color:var(--ink-soft); flex-shrink:0;}
+  .phase-section.collapsed .phase-caret{transform:rotate(-90deg);}
+  .phase-section.collapsed .phase-body{display:none;}
+  .phase-body{padding:0 18px 16px;}
+
+  .step-row{
+    border-top:1px solid #F2E9E2; padding:14px 0; display:flex; gap:12px; align-items:flex-start;
+  }
+  .step-row.milestone{background:linear-gradient(90deg, var(--amber-bg), transparent 40%); margin:0 -18px; padding:14px 18px; border-top:1.5px dashed var(--line);}
+  .step-row.disabled{opacity:.42;}
+  .step-check{
+    width:21px; height:21px; border-radius:7px; border:2px solid var(--line);
+    flex-shrink:0; cursor:pointer; margin-top:1px; display:flex; align-items:center; justify-content:center;
+    background:#fff; transition:all .12s ease;
+  }
+  .step-check.checked{background:var(--green); border-color:var(--green);}
+  .step-check svg{opacity:0;}
+  .step-check.checked svg{opacity:1;}
+  .step-main{flex:1; min-width:0;}
+  .step-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;}
+  .step-name{font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;}
+  .step-name.done{text-decoration:line-through; color:var(--ink-soft);}
+  .step-tool{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:600;
+    background:#F0EAE5; color:var(--ink-soft); padding:2.5px 7px; border-radius:20px; white-space:nowrap;
+  }
+  .step-milestone-tag{
+    font-size:9.5px; font-weight:700; color:var(--amber); background:var(--amber-bg);
+    padding:2.5px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .step-instr{font-size:12px; color:var(--ink-soft); margin:2px 0 9px; line-height:1.45;}
+  .step-controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .step-link-row{display:flex; align-items:center; gap:5px; flex:1; min-width:180px;}
+  .step-link-row input{
+    flex:1; font-size:11.5px; font-family:'JetBrains Mono',monospace;
+    padding:6px 9px; border-radius:7px; border:1.5px solid var(--line); background:#FBFAF8; color:var(--ink);
+    min-width:0;
+  }
+  .step-link-row input:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
+  .step-open{
+    display:inline-flex; align-items:center; gap:4px; background:var(--ink); color:#fff;
+    text-decoration:none; font-weight:700; font-size:11px; padding:6.5px 10px; border-radius:7px;
+    flex-shrink:0; transition:background .15s ease;
+  }
+  .step-open.disabled{background:transparent; color:var(--ink-soft); border:1.5px dashed var(--line); pointer-events:none;}
+  .step-open:hover{background:var(--coral-deep);}
+  .step-date{
+    font-size:11.5px; font-family:'JetBrains Mono',monospace; padding:6px 8px; border-radius:7px;
+    border:1.5px solid var(--line); background:#FBFAF8; color:var(--ink);
+  }
+  .step-date:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
+  .step-date-label{font-size:10px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.02em; margin-right:2px;}
+  .step-toggle-apply{
+    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--ink-soft);
+    cursor:pointer; user-select:none; margin-left:auto;
+  }
+  .step-toggle-apply input{accent-color:var(--coral);}
+  .step-semaphore{width:9px; height:9px; border-radius:50%; flex-shrink:0; margin-top:5px;}
+
+  .assignees-wrap{margin-top:9px; position:relative;}
+  .assignees-label{font-size:10px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.02em; margin-bottom:5px; display:block;}
+  .assignee-select-btn{
+    display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+    background:#fff; border:1.5px solid var(--line); color:var(--ink);
+    padding:6px 10px; border-radius:8px; cursor:pointer; max-width:100%;
+  }
+  .assignee-select-btn:hover{border-color:var(--violet);}
+  .assignee-select-btn .placeholder{color:var(--ink-soft); font-weight:500;}
+  .assignee-select-btn svg{flex-shrink:0; color:var(--ink-soft);}
+  .assignee-dropdown{
+    position:fixed; z-index:100;
+    background:#fff; border:1.5px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); padding:8px; min-width:210px;
+    display:grid; grid-template-columns:1fr 1fr; gap:2px;
+  }
+  .assignee-option{
+    display:flex; align-items:center; gap:7px; font-size:12px; padding:6px 8px;
+    border-radius:6px; cursor:pointer; user-select:none;
+  }
+  .assignee-option:hover{background:var(--violet-bg);}
+  .assignee-option input{accent-color:var(--violet); margin:0;}
+  .link-scope-tag{
+    font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.02em;
+    padding:2px 6px; border-radius:20px; white-space:nowrap;
+  }
+  .link-scope-tag.personal{background:var(--violet-bg); color:var(--violet);}
+  .link-scope-tag.common{background:#F0EAE5; color:var(--ink-soft);}
+
+  .done-date-note{font-size:10.5px; color:var(--green); font-weight:600; margin-top:6px;}
+
+  /* ---------- MODAL NUEVO PROYECTO ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(34,29,27,.45); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-card{
+    background:var(--card); border-radius:18px; box-shadow:var(--shadow);
+    padding:28px; max-width:380px; width:100%;
+  }
+  .modal-card h3{font-family:'Inter',sans-serif; font-weight:700; font-size:17px; margin:0 0 4px;}
+  .modal-card p{color:var(--ink-soft); font-size:12.5px; margin:0 0 16px;}
+  .modal-field label{font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; display:block; margin-bottom:6px;}
+  .modal-field input{
+    width:100%; font-size:14px; padding:10px 12px; border-radius:9px;
+    border:1.5px solid var(--line); background:#FBFAF8; color:var(--ink);
+  }
+  .modal-field input:focus{outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral);}
+  .modal-error{color:var(--red); font-size:11.5px; margin-top:8px; min-height:14px; font-weight:600;}
+  .modal-actions{display:flex; gap:8px; margin-top:18px;}
+  .modal-actions button{flex:1; font-weight:700; font-size:13px; padding:10px; border-radius:9px; cursor:pointer;}
+  .modal-cancel{background:transparent; border:1.5px solid var(--line); color:var(--ink-soft);}
+  .modal-cancel:hover{border-color:var(--red); color:var(--red);}
+  .modal-confirm{background:var(--coral); border:none; color:#fff;}
+  .modal-confirm:hover{background:var(--coral-deep);}
+
+  @media (max-width: 700px){
+    main{padding:16px;}
+    header.bar{padding:12px 16px;}
+    .project-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate-wrap"></div>
+
+<div id="app" style="display:none; flex-direction:column; flex:1;">
+  <header class="bar">
+    <div class="bar-left">
+      <div class="bar-logo">P&amp;G</div>
+      <div>
+        <h1>Gestión de Proyectos</h1>
+        <span class="sub">Play&amp;go experience · abrir → desarrollar → publicar → promocionar → mantener</span>
+      </div>
+    </div>
+    <div class="bar-actions">
+      <button class="bar-btn" id="lockBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Bloquear
+      </button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ============================================================
+   DATOS BASE
+   ============================================================ */
+const TEAM = ["Jordi","Gersón","Juan Pedro","Juan Manuel","Joan","Jorge","Óscar","Gabriela","André","Agus","Fernando"];
+
+const PHASES = [
+  { id:"abrir", name:"Abrir", emoji:"📂", color:"var(--coral)",
+    steps:[
+      { id:"a1", name:"Conversión de oportunidad a proyecto", tool:"Panel de seguimiento comercial", instr:"Marcar oportunidad como proyecto abierto.", assignable:true },
+      { id:"a2", name:"Alta de proyecto", tool:"Control de proyectos", instr:"Dar de alta en Control de Proyectos.", assignable:true },
+      { id:"a3", name:"Documentación", tool:"Google Drive", instr:"Crear carpeta de documentación del proyecto.", personalized:true, assignable:true },
+      { id:"a4", name:"Gestión de tareas", tool:"Jira", instr:"Alta del proyecto, estructura de sprints/backlog.", personalized:true, assignable:true },
+      { id:"a5", name:"Documentación técnica/funcional", tool:"Confluence", instr:"Crear ficha de proyecto (briefing, alcance, specs).", personalized:true, assignable:true },
+      { id:"a6", name:"Comunicación interna", tool:"Slack", instr:"Crear grupo/canal del proyecto.", personalized:true, assignable:true },
+      { id:"a7", name:"Reunión de kickoff con el cliente", tool:"Google Meet", instr:"Agendar y realizar la reunión de arranque con el cliente.", assignable:true },
+    ]},
+  { id:"desarrollar", name:"Desarrollar", emoji:"🛠️", color:"var(--teal)",
+    steps:[
+      { id:"d1", name:"Reparto de equipo y tareas", tool:"Jira (filtrado por proyecto)", instr:"Asignar tareas a programación, contenidos y arte.", assignable:true, personalized:true },
+      { id:"d2", name:"Tabla de contenidos", tool:"CMS", instr:"Elaborar tabla de contenidos del proyecto.", assignable:true },
+      { id:"d3", name:"Assets de arte", tool:"Blender", instr:"Producir/recopilar assets gráficos.", assignable:true },
+      { id:"d4", name:"Arquitectura de programación", tool:"Unity", instr:"Definir arquitectura técnica del desarrollo.", assignable:true },
+      { id:"d5", name:"MVP 1", tool:"APK (Google) / TestFlight (Apple)", instr:"Generar y compartir build de prueba.", assignable:true, milestone:true },
+      { id:"d6", name:"Feedback", tool:"Herramienta de feedback de proyectos", instr:"Recoger feedback sobre MVP 1.", assignable:true },
+      { id:"d7", name:"MVP 2", tool:"APK (Google) / TestFlight (Apple)", instr:"Entrega de segunda versión con ajustes.", assignable:true, milestone:true },
+    ]},
+  { id:"publicar", name:"Publicar", emoji:"🚀", color:"var(--amber)",
+    steps:[
+      { id:"p1", name:"Compilación final", tool:"APK (Google) / TestFlight (Apple)", instr:"Generar build final para publicación.", assignable:true },
+      { id:"p2", name:"Configuración de tiendas", tool:"Google Play Console + App Store Connect", instr:"Configurar ficha de app en ambas tiendas.", assignable:true },
+      { id:"p3", name:"Contenido de ficha", tool:"Google Play Console + App Store Connect", instr:"Rellenar textos e imágenes de la ficha.", assignable:true },
+      { id:"p4", name:"Envío a revisión", tool:"Google Play Console + App Store Connect", instr:"Enviar app a revisión en ambas plataformas.", assignable:true },
+    ]},
+  { id:"promocionar", name:"Promocionar", emoji:"📣", color:"var(--coral-deep)",
+    steps:[
+      { id:"r1", name:"Enlace inteligente", tool:"Linkfire", instr:"Generar link inteligente del proyecto.", assignable:true },
+      { id:"r2", name:"Código QR", tool:"Generador QR", instr:"Crear QR asociado al link.", assignable:true },
+      { id:"r3", name:"Nota de prensa", tool:"—", instr:"Redactar y distribuir nota de prensa.", assignable:true },
+      { id:"r4", name:"Post de blog", tool:"Blog corporativo", instr:"Elaborar y publicar entrada de blog.", assignable:true },
+      { id:"r5", name:"Redes sociales", tool:"LinkedIn · Facebook · Instagram · X · GMB · YouTube", instr:"Dinamizar contenido en cada canal.", assignable:true },
+    ]},
+  { id:"mantenimiento", name:"Mantenimiento", emoji:"🔧", color:"var(--violet)",
+    steps:[
+      { id:"m1", name:"Alta en mantenimiento", tool:"Herramienta de Mantenimiento Apps", instr:"Dar de alta el proyecto para soporte/actualizaciones.", assignable:true },
+      { id:"m2", name:"Alta en instalaciones", tool:"Metabase (Instalaciones Apps)", instr:"Dar de alta el proyecto para tracking de instalaciones.", assignable:true },
+    ]},
+];
+
+const LOCK_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const CARET_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+const TRASH_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+const BACK_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+
+/* ============================================================
+   ESTADO Y PERSISTENCIA
+   ============================================================ */
+let projects = [];
+let currentProjectId = null;
+let sharedLinks = {};
+
+async function loadProjects(){
+  try{
+    const res = await window.storage.get('pg_projects_v1', false);
+    projects = res ? JSON.parse(res.value) : [];
+  }catch(e){ projects = []; }
+}
+async function saveProjects(){
+  try{ await window.storage.set('pg_projects_v1', JSON.stringify(projects), false); }
+  catch(e){ console.error('Error guardando proyectos', e); }
+}
+
+async function loadSharedLinks(){
+  try{
+    const res = await window.storage.get('pg_shared_links_v1', false);
+    sharedLinks = res ? JSON.parse(res.value) : {};
+  }catch(e){ sharedLinks = {}; }
+}
+async function saveSharedLinks(){
+  try{ await window.storage.set('pg_shared_links_v1', JSON.stringify(sharedLinks), false); }
+  catch(e){ console.error('Error guardando enlaces comunes', e); }
+}
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function newProject(name){
+  const id = 'proj_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  const steps = {};
+  PHASES.forEach(ph => ph.steps.forEach(st => {
+    steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
+  }));
+  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), steps };
+}
+
+/* ============================================================
+   LÓGICA DE SEMÁFORO
+   ============================================================ */
+function stepStatus(stepState){
+  if(!stepState.applies) return 'na';
+  if(stepState.done) return 'green';
+  if(stepState.estDate){
+    return stepState.estDate < todayStr() ? 'red' : 'orange';
+  }
+  return 'red';
+}
+function statusColor(status){
+  return { green:'var(--green)', orange:'var(--amber)', red:'var(--red)', na:'#D8CFC7' }[status];
+}
+function phaseStats(project, phase){
+  const applicable = phase.steps.filter(s => project.steps[s.id].applies);
+  const done = applicable.filter(s => project.steps[s.id].done);
+  let status = 'green';
+  if(applicable.length === 0) status = 'green';
+  else if(done.length < applicable.length){
+    const anyOrangeOrRed = applicable.some(s => {
+      const st = stepStatus(project.steps[s.id]);
+      return st === 'red';
+    });
+    status = anyOrangeOrRed ? 'red' : (done.length > 0 || applicable.some(s=>project.steps[s.id].estDate) ? 'orange' : 'red');
+  }
+  return { total: applicable.length, done: done.length, status };
+}
+function projectStats(project){
+  let total=0, done=0, status='green', currentPhase=PHASES[0];
+  let foundCurrent=false;
+  for(const ph of PHASES){
+    const st = phaseStats(project, ph);
+    total += st.total; done += st.done;
+    if(st.status==='red') status='red';
+    else if(st.status==='orange' && status!=='red') status='orange';
+    if(!foundCurrent && st.done < st.total){ currentPhase = ph; foundCurrent = true; }
+  }
+  if(!foundCurrent) currentPhase = PHASES[PHASES.length-1];
+  return { total, done, status, currentPhase };
+}
+
+/* ============================================================
+   RENDER: GATE (login)
+   ============================================================ */
+async function renderGate(){
+  const gate = document.getElementById('gate');
+  let hasPassword = false;
+  try{
+    const res = await window.storage.get('pg_pm_password', false);
+    hasPassword = !!(res && res.value);
+  }catch(e){ hasPassword = false; }
+
+  gate.innerHTML = `
+    <div class="gate-card">
+      <div class="gate-logo">P&amp;G</div>
+      <h2>${hasPassword ? 'Acceso Project Manager' : 'Crear contraseña de acceso'}</h2>
+      <p class="gate-sub">${hasPassword ? 'Introduce la contraseña para gestionar los proyectos.' : 'Es la primera vez que se abre esta herramienta. Define una contraseña para proteger el acceso.'}</p>
+      <div class="gate-field">
+        <label>Contraseña</label>
+        <input type="password" id="gatePass" placeholder="••••••••">
+      </div>
+      ${!hasPassword ? `<div class="gate-field"><label>Confirmar contraseña</label><input type="password" id="gatePass2" placeholder="••••••••"></div>` : ''}
+      <button class="gate-submit" id="gateSubmit">${hasPassword ? 'Acceder' : 'Crear y acceder'}</button>
+      <div class="gate-error" id="gateError"></div>
+      <p class="gate-note">La contraseña se guarda solo en este navegador, sin cifrar. No compartas este equipo con personas ajenas al proyecto.</p>
+    </div>`;
+
+  document.getElementById('gateSubmit').onclick = async () => {
+    const pass = document.getElementById('gatePass').value;
+    const err = document.getElementById('gateError');
+    if(!hasPassword){
+      const pass2 = document.getElementById('gatePass2').value;
+      if(!pass || pass.length < 4){ err.textContent = 'La contraseña debe tener al menos 4 caracteres.'; return; }
+      if(pass !== pass2){ err.textContent = 'Las contraseñas no coinciden.'; return; }
+      try{ await window.storage.set('pg_pm_password', pass, false); }catch(e){ err.textContent = 'Error al guardar. Inténtalo de nuevo.'; return; }
+      unlock();
+    } else {
+      try{
+        const res = await window.storage.get('pg_pm_password', false);
+        if(res && res.value === pass){ unlock(); }
+        else { err.textContent = 'Contraseña incorrecta.'; }
+      }catch(e){ err.textContent = 'Error al verificar. Inténtalo de nuevo.'; }
+    }
+  };
+  gate.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('gateSubmit').click(); });
+  });
+}
+
+async function unlock(){
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  await loadProjects();
+  await loadSharedLinks();
+  ensureProjectsUpToDate();
+  await saveProjects();
+  await migrateSharedLinks();
+  renderBoard();
+}
+
+function ensureProjectsUpToDate(){
+  projects.forEach(project => {
+    PHASES.forEach(ph => ph.steps.forEach(st => {
+      if(!project.steps[st.id]){
+        project.steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
+      }
+    }));
+  });
+}
+
+async function migrateSharedLinks(){
+  let already = false;
+  try{
+    const res = await window.storage.get('pg_shared_links_migrated_v1', false);
+    already = !!(res && res.value === 'yes');
+  }catch(e){ already = false; }
+  if(already) return;
+
+  let changed = false;
+  PHASES.forEach(ph => ph.steps.forEach(st => {
+    if(st.personalized) return;
+    if(sharedLinks[st.id]) return;
+    const withLink = projects.find(p => p.steps[st.id] && p.steps[st.id].url);
+    if(withLink){
+      sharedLinks[st.id] = withLink.steps[st.id].url;
+      changed = true;
+    }
+  }));
+
+  if(changed) await saveSharedLinks();
+  try{ await window.storage.set('pg_shared_links_migrated_v1', 'yes', false); }
+  catch(e){ /* ignore */ }
+}
+
+document.getElementById('lockBtn').addEventListener('click', () => {
+  document.getElementById('app').style.display = 'none';
+  const g = document.getElementById('gate');
+  g.style.display = 'flex';
+  renderGate();
+});
+
+/* ============================================================
+   RENDER: BOARD (vista general)
+   ============================================================ */
+function renderBoard(){
+  currentProjectId = null;
+  const main = document.getElementById('main');
+
+  if(projects.length === 0){
+    main.innerHTML = `
+      <div class="board-head">
+        <div><h2>Proyectos activos</h2><p>Aún no hay proyectos. Crea el primero para empezar.</p></div>
+        <button class="new-project-btn" id="newProjBtn">+ Nuevo proyecto</button>
+      </div>
+      <div class="empty-state">
+        <div class="emoji">📁</div>
+        <p>Cuando abras un proyecto nuevo aparecerá aquí, con su checklist de las 5 fases listo para rellenar.</p>
+      </div>`;
+    document.getElementById('newProjBtn').onclick = createProjectFlow;
+    return;
+  }
+
+  const cards = projects.map(p => {
+    const stats = projectStats(p);
+    const pct = stats.total ? Math.round((stats.done/stats.total)*100) : 0;
+    return `
+      <div class="pcard" data-id="${p.id}">
+        <div class="pcard-top">
+          <div class="pcard-title">${escapeHtml(p.name)}</div>
+          <button class="pcard-del" data-del="${p.id}" title="Eliminar proyecto">${TRASH_SVG}</button>
+        </div>
+        <div class="pcard-phase">
+          <span>${stats.currentPhase.emoji}</span>
+          <span>${stats.currentPhase.name}</span>
+          <span class="dot" style="background:${statusColor(stats.status)}; margin-left:auto;"></span>
+        </div>
+        <div class="pcard-bar-track"><div class="pcard-bar-fill" style="width:${pct}%; background:${statusColor(stats.status)};"></div></div>
+        <div class="pcard-foot">
+          <span class="steps-count">${stats.done}/${stats.total} pasos</span>
+          <span>${pct}%</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="board-head">
+      <div><h2>Proyectos activos</h2><p>${projects.length} proyecto${projects.length===1?'':'s'} en seguimiento.</p></div>
+      <button class="new-project-btn" id="newProjBtn">+ Nuevo proyecto</button>
+    </div>
+    <div class="project-grid">${cards}</div>`;
+
+  document.getElementById('newProjBtn').onclick = createProjectFlow;
+  main.querySelectorAll('.pcard').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if(e.target.closest('[data-del]')) return;
+      openProject(card.dataset.id);
+    });
+  });
+  main.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      confirmDeleteProject(btn.dataset.del);
+    });
+  });
+}
+
+function createProjectFlow(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-card">
+      <h3>Nuevo proyecto</h3>
+      <p>Se creará con las 5 fases y todos los pasos de la plantilla maestra listos para rellenar.</p>
+      <div class="modal-field">
+        <label>Nombre del proyecto</label>
+        <input type="text" id="newProjName" placeholder="Ej. App Ruta del Vino">
+      </div>
+      <div class="modal-error" id="newProjError"></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="newProjCancel">Cancelar</button>
+        <button class="modal-confirm" id="newProjConfirm">Crear proyecto</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById('newProjName');
+  const err = document.getElementById('newProjError');
+  input.focus();
+
+  const close = () => overlay.remove();
+
+  const confirm = async () => {
+    const name = input.value.trim();
+    if(!name){ err.textContent = 'Escribe un nombre para el proyecto.'; return; }
+    const p = newProject(name);
+    projects.push(p);
+    await saveProjects();
+    close();
+    openProject(p.id);
+  };
+
+  document.getElementById('newProjCancel').addEventListener('click', close);
+  document.getElementById('newProjConfirm').addEventListener('click', confirm);
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+  input.addEventListener('keydown', (e) => { if(e.key === 'Enter') confirm(); });
+}
+
+function confirmDeleteProject(id){
+  const proj = projects.find(p => p.id === id);
+  if(!proj) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-card">
+      <h3>Eliminar proyecto</h3>
+      <p>¿Seguro que quieres eliminar "<strong>${escapeHtml(proj.name)}</strong>"? Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="delCancel">Cancelar</button>
+        <button class="modal-confirm" id="delConfirm" style="background:var(--red);">Eliminar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  document.getElementById('delCancel').addEventListener('click', close);
+  document.getElementById('delConfirm').addEventListener('click', async () => {
+    projects = projects.filter(p => p.id !== id);
+    await saveProjects();
+    close();
+    renderBoard();
+  });
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ============================================================
+   RENDER: DETALLE DE PROYECTO
+   ============================================================ */
+let collapsedPhases = {};
+
+function openProject(id){
+  currentProjectId = id;
+  collapsedPhases = {};
+  renderDetail();
+}
+
+function renderDetail(){
+  const project = projects.find(p => p.id === currentProjectId);
+  if(!project){ renderBoard(); return; }
+  const main = document.getElementById('main');
+  const stats = projectStats(project);
+
+  const phasesHtml = PHASES.map(phase => {
+    const pstats = phaseStats(project, phase);
+    const collapsed = collapsedPhases[phase.id];
+    const stepsHtml = phase.steps.map(step => renderStepRow(project, step)).join('');
+    return `
+      <div class="phase-section ${collapsed?'collapsed':''}" data-phase="${phase.id}">
+        <div class="phase-head" data-toggle="${phase.id}">
+          <span class="phase-emoji">${phase.emoji}</span>
+          <span class="phase-name">${phase.name}</span>
+          <span class="dot" style="background:${statusColor(pstats.status)};"></span>
+          <span class="phase-progress">${pstats.done}/${pstats.total}</span>
+          <span class="phase-caret">${CARET_SVG}</span>
+        </div>
+        <div class="phase-body">${stepsHtml}</div>
+      </div>`;
+  }).join('');
+
+  main.innerHTML = `
+    <button class="back-btn" id="backBtn">${BACK_SVG} Volver a proyectos</button>
+    <div class="detail-head">
+      <div class="detail-title-wrap">
+        <input class="detail-title" id="projTitle" value="${escapeHtml(project.name)}">
+        <div class="detail-meta">Creado el ${project.createdAt}</div>
+      </div>
+      <div class="overall-badge" style="background:${statusColor(stats.status)==='var(--green)'?'var(--green-bg)':statusColor(stats.status)==='var(--amber)'?'var(--amber-bg)':'var(--red-bg)'}; color:${statusColor(stats.status)};">
+        <span class="dot" style="background:${statusColor(stats.status)};"></span>
+        ${stats.done}/${stats.total} pasos completados
+      </div>
+    </div>
+    ${phasesHtml}`;
+
+  document.getElementById('backBtn').onclick = renderBoard;
+
+  const titleInput = document.getElementById('projTitle');
+  titleInput.addEventListener('change', async () => {
+    project.name = titleInput.value.trim() || 'Proyecto sin nombre';
+    await saveProjects();
+  });
+
+  main.querySelectorAll('[data-toggle]').forEach(head => {
+    head.addEventListener('click', () => {
+      const id = head.dataset.toggle;
+      collapsedPhases[id] = !collapsedPhases[id];
+      renderDetail();
+    });
+  });
+
+  bindStepEvents(project);
+}
+
+let openDropdown = null;
+
+function renderStepRow(project, step){
+  const state = project.steps[step.id];
+  const status = stepStatus(state);
+  const isMilestone = !!step.milestone;
+  const effectiveUrl = step.personalized ? (state.url||'') : (sharedLinks[step.id]||'');
+  const linkDisabled = !effectiveUrl;
+  const scopeTag = step.personalized
+    ? `<span class="link-scope-tag personal">Personalizado</span>`
+    : `<span class="link-scope-tag common">Enlace común</span>`;
+
+  let assigneesHtml = '';
+  if(step.assignable){
+    const selected = state.assignees;
+    const summary = selected.length === 0
+      ? '<span class="placeholder">Seleccionar equipo</span>'
+      : (selected.length <= 2 ? escapeHtml(selected.join(', ')) : `${escapeHtml(selected.slice(0,2).join(', '))} +${selected.length-2}`);
+    const isOpen = openDropdown === step.id;
+    assigneesHtml = `
+      <div class="assignees-wrap">
+        <span class="assignees-label">Asignado a</span>
+        <button type="button" class="assignee-select-btn" data-assign-toggle="${step.id}">
+          ${summary}
+          ${CARET_SVG}
+        </button>
+        ${isOpen ? `
+        <div class="assignee-dropdown">
+          ${TEAM.map(name => `
+            <label class="assignee-option">
+              <input type="checkbox" data-assignee="${step.id}" data-name="${name}" ${selected.includes(name)?'checked':''}>
+              ${name}
+            </label>`).join('')}
+        </div>` : ''}
+      </div>`;
+  }
+
+  return `
+    <div class="step-row ${isMilestone?'milestone':''} ${!state.applies?'disabled':''}" data-step="${step.id}">
+      <div class="step-check ${state.done?'checked':''}" data-check="${step.id}">${CHECK_SVG}</div>
+      <span class="step-semaphore" style="background:${statusColor(status)};" title="Estado del paso"></span>
+      <div class="step-main">
+        <div class="step-top">
+          <span class="step-name ${state.done?'done':''}">${escapeHtml(step.name)}</span>
+          <span class="step-tool">${escapeHtml(step.tool)}</span>
+          ${isMilestone?'<span class="step-milestone-tag">Hito</span>':''}
+          ${scopeTag}
+        </div>
+        <div class="step-instr">${escapeHtml(step.instr)}</div>
+        <div class="step-controls">
+          <div class="step-link-row">
+            <input type="text" placeholder="${step.personalized ? 'Enlace de este proyecto' : 'Enlace común a todos los proyectos'}" value="${escapeHtml(effectiveUrl)}" ${step.personalized ? `data-url="${step.id}"` : `data-shared-url="${step.id}"`}>
+            <a class="step-open ${linkDisabled?'disabled':''}" href="${effectiveUrl||'#'}" target="_blank" rel="noopener">Abrir ↗</a>
+          </div>
+          <span class="step-date-label">Estimada</span>
+          <input type="date" class="step-date" value="${state.estDate||''}" data-est="${step.id}">
+          ${state.done ? `<span class="done-date-note">✓ ${state.doneDate||''}</span>` : ''}
+          <label class="step-toggle-apply">
+            <input type="checkbox" data-applies="${step.id}" ${state.applies?'checked':''}>
+            Aplica a este proyecto
+          </label>
+        </div>
+        ${assigneesHtml}
+      </div>
+    </div>`;
+}
+
+function bindStepEvents(project){
+  const main = document.getElementById('main');
+
+  main.querySelectorAll('[data-check]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.check;
+      const state = project.steps[id];
+      state.done = !state.done;
+      state.doneDate = state.done ? todayStr() : null;
+      await saveProjects();
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-url]').forEach(el => {
+    el.addEventListener('change', async () => {
+      project.steps[el.dataset.url].url = el.value.trim();
+      await saveProjects();
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-shared-url]').forEach(el => {
+    el.addEventListener('change', async () => {
+      sharedLinks[el.dataset.sharedUrl] = el.value.trim();
+      await saveSharedLinks();
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-est]').forEach(el => {
+    el.addEventListener('change', async () => {
+      project.steps[el.dataset.est].estDate = el.value || null;
+      await saveProjects();
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-applies]').forEach(el => {
+    el.addEventListener('change', async () => {
+      project.steps[el.dataset.applies].applies = el.checked;
+      await saveProjects();
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-assign-toggle]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.dataset.assignToggle;
+      openDropdown = openDropdown === id ? null : id;
+      renderDetail();
+    });
+  });
+
+  main.querySelectorAll('[data-assignee]').forEach(el => {
+    el.addEventListener('click', (e) => e.stopPropagation());
+    el.addEventListener('change', async () => {
+      const stepId = el.dataset.assignee;
+      const name = el.dataset.name;
+      const state = project.steps[stepId];
+      const idx = state.assignees.indexOf(name);
+      if(el.checked && idx === -1) state.assignees.push(name);
+      if(!el.checked && idx !== -1) state.assignees.splice(idx,1);
+      await saveProjects();
+      const btn = main.querySelector(`[data-assign-toggle="${stepId}"]`);
+      if(btn){
+        const summary = state.assignees.length === 0
+          ? '<span class="placeholder">Seleccionar equipo</span>'
+          : (state.assignees.length <= 2 ? escapeHtml(state.assignees.join(', ')) : `${escapeHtml(state.assignees.slice(0,2).join(', '))} +${state.assignees.length-2}`);
+        btn.innerHTML = summary + CARET_SVG;
+      }
+    });
+  });
+
+  if(openDropdown){
+    setTimeout(() => {
+      document.addEventListener('click', function closeDropdown(e){
+        if(!e.target.closest('.assignees-wrap') && !e.target.closest('.assignee-dropdown')){
+          openDropdown = null;
+          renderDetail();
+        }
+        document.removeEventListener('click', closeDropdown);
+      }, { once:true });
+    }, 0);
+    adjustDropdownPosition();
+    setTimeout(() => {
+      window.addEventListener('scroll', closeOnScrollResize, { once:true, capture:true });
+      window.addEventListener('resize', closeOnScrollResize, { once:true });
+    }, 0);
+  }
+}
+
+function closeOnScrollResize(){
+  if(openDropdown){
+    openDropdown = null;
+    renderDetail();
+  }
+}
+
+function adjustDropdownPosition(){
+  const btn = document.querySelector(`[data-assign-toggle="${openDropdown}"]`);
+  const dd = document.querySelector('.assignee-dropdown');
+  if(!btn || !dd) return;
+  const btnRect = btn.getBoundingClientRect();
+  const ddRect = dd.getBoundingClientRect();
+  let top = btnRect.bottom + 4;
+  let left = btnRect.left;
+  if(top + ddRect.height > window.innerHeight - 8){
+    top = btnRect.top - ddRect.height - 4;
+    if(top < 8) top = 8;
+  }
+  if(left + ddRect.width > window.innerWidth - 8){
+    left = window.innerWidth - ddRect.width - 8;
+  }
+  if(left < 8) left = 8;
+  dd.style.top = top + 'px';
+  dd.style.left = left + 'px';
+}
+
+/* ============================================================
+   INICIO
+   ============================================================ */
+renderGate();
+</script>
+</body>
+</html>
