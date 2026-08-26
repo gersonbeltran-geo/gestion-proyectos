@@ -536,14 +536,14 @@ const PHASES = [
       { id:"a4", name:"Gestión de tareas", tool:"Jira", instr:"Alta del proyecto, estructura de sprints/backlog.", personalized:true, assignable:true },
       { id:"a5", name:"Documentación técnica/funcional", tool:"Confluence", instr:"Crear ficha de proyecto (briefing, alcance, specs).", personalized:true, assignable:true },
       { id:"a6", name:"Comunicación interna", tool:"Slack", instr:"Crear grupo/canal del proyecto.", personalized:true, assignable:true },
-      { id:"a7", name:"Reunión de kickoff con el cliente", tool:"Google Meet", instr:"Agendar y realizar la reunión de arranque con el cliente.", assignable:true },
+      { id:"a7", name:"Reunión de kickoff con el cliente", tool:"Google Meet", instr:"Agendar y realizar la reunión de arranque con el cliente.", assignable:true, personalized:true },
     ]},
   { id:"desarrollar", name:"Desarrollar", emoji:"🛠️", color:"var(--teal)",
     steps:[
       { id:"d1", name:"Reparto de equipo y tareas", tool:"Jira (filtrado por proyecto)", instr:"Asignar tareas a programación, contenidos y arte.", assignable:true, personalized:true },
       { id:"d1c", name:"Tabla de contenidos", tool:"Excel", instr:"Elaborar la tabla de contenidos del proyecto.", assignable:true, personalized:true },
       { id:"d2", name:"Contenidos", tool:"CMS", instr:"Elaborar los contenidos del proyecto.", assignable:true },
-      { id:"d3", name:"Assets de arte", tool:"Blender", instr:"Producir/recopilar assets gráficos.", assignable:true },
+      { id:"d3", name:"Assets de arte", tool:"Blender", instr:"Producir/recopilar assets gráficos.", assignable:true, personalized:true },
       { id:"d4", name:"Arquitectura de programación", tool:"Unity", instr:"Definir arquitectura técnica del desarrollo.", assignable:true },
       { id:"d5", name:"MVP 1", tool:"APK (Google) / TestFlight (Apple)", instr:"Generar y compartir build de prueba.", assignable:true, milestone:true },
       { id:"d6", name:"Feedback", tool:"Herramienta de feedback de proyectos", instr:"Recoger feedback sobre MVP 1.", assignable:true },
@@ -612,7 +612,7 @@ function newProject(name){
   PHASES.forEach(ph => ph.steps.forEach(st => {
     steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
   }));
-  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), deliveryDate: null, steps };
+  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), startDate: null, deliveryDate: null, steps };
 }
 
 /* ============================================================
@@ -741,6 +741,7 @@ function renderProjectTimeline(project){
 
   const allMs = phaseRows.flatMap(r => r.points.map(p => new Date(p.date).getTime())).concat([new Date(todayStr()).getTime()]);
   if(project.deliveryDate) allMs.push(new Date(project.deliveryDate).getTime());
+  if(project.startDate) allMs.push(new Date(project.startDate).getTime());
   const range = computeDateRange(allMs);
 
   if(!range || phaseRows.every(r => r.points.length===0)){
@@ -771,6 +772,9 @@ function renderProjectTimeline(project){
   const deliveryLineHtml = project.deliveryDate
     ? `<div class="timeline-delivery-line" style="left:${datePct(project.deliveryDate, range)}%;"><span class="timeline-delivery-label">🏁 Entrega</span></div>`
     : '';
+  const startLineHtml = project.startDate
+    ? `<div class="timeline-delivery-line" style="left:${datePct(project.startDate, range)}%; border-left-color:var(--teal);"><span class="timeline-delivery-label" style="color:var(--teal);">📅 Inicio</span></div>`
+    : '';
 
   return `
     <div class="timeline-card">
@@ -778,6 +782,7 @@ function renderProjectTimeline(project){
         <div class="timeline-legend-item"><span class="dot" style="background:var(--green);"></span> Hecho</div>
         <div class="timeline-legend-item"><span class="dot" style="background:var(--amber);"></span> Planificado</div>
         <div class="timeline-legend-item"><span class="dot" style="background:var(--red);"></span> Sin fecha / retrasado</div>
+        ${project.startDate ? `<div class="timeline-legend-item">📅 Fecha de inicio</div>` : ''}
         ${project.deliveryDate ? `<div class="timeline-legend-item">🏁 Fecha de entrega</div>` : ''}
       </div>
       <div class="timeline-scroll">
@@ -785,6 +790,7 @@ function renderProjectTimeline(project){
           ${renderTimelineAxis(range)}
           <div class="timeline-body">
             ${renderTodayLine(range)}
+            ${startLineHtml}
             ${deliveryLineHtml}
             ${rowsHtml}
           </div>
@@ -970,12 +976,14 @@ async function unlock(){
   ensureProjectsUpToDate();
   await saveProjects();
   await migrateSharedLinks();
+  await migrateNewlyPersonalizedSteps();
   renderBoard();
 }
 
 function ensureProjectsUpToDate(){
   projects.forEach(project => {
     if(project.deliveryDate === undefined) project.deliveryDate = null;
+    if(project.startDate === undefined) project.startDate = null;
     PHASES.forEach(ph => ph.steps.forEach(st => {
       if(!project.steps[st.id]){
         project.steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
@@ -1004,6 +1012,31 @@ async function migrateSharedLinks(){
 
   if(changed) await saveSharedLinks();
   try{ localStorage.setItem('pg_shared_links_migrated_v1', 'yes'); }
+  catch(e){ /* ignore */ }
+}
+
+async function migrateNewlyPersonalizedSteps(){
+  let already = false;
+  try{
+    const snap = await DATA_DOC.get();
+    already = !!(snap.exists && snap.data().migratedPersonalized_v1);
+  }catch(e){ return; }
+  if(already) return;
+
+  const targets = ['d3', 'a7'];
+  let changed = false;
+  targets.forEach(stepId => {
+    const sharedVal = sharedLinks[stepId];
+    if(!sharedVal) return;
+    projects.forEach(p => {
+      if(p.steps[stepId] && !p.steps[stepId].url){
+        p.steps[stepId].url = sharedVal;
+        changed = true;
+      }
+    });
+  });
+  if(changed) await saveProjects();
+  try{ await DATA_DOC.set({ migratedPersonalized_v1: true }, { merge:true }); }
   catch(e){ /* ignore */ }
 }
 
@@ -1362,11 +1395,21 @@ function openProject(id){
 function renderDeliveryField(project){
   return `
     <div class="delivery-field">
-      🏁 Fecha de entrega:
+      📅 Fecha de inicio:
+      <input type="date" id="projStart" value="${project.startDate||''}">
+      &nbsp;&nbsp;🏁 Fecha de entrega:
       <input type="date" id="projDelivery" value="${project.deliveryDate||''}">
     </div>`;
 }
 function bindDeliveryField(project){
+  const startInput = document.getElementById('projStart');
+  if(startInput){
+    startInput.addEventListener('change', async () => {
+      project.startDate = startInput.value || null;
+      await saveProjects();
+      renderDetail();
+    });
+  }
   const input = document.getElementById('projDelivery');
   if(!input) return;
   input.addEventListener('change', async () => {
