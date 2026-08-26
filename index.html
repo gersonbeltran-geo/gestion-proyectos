@@ -1206,6 +1206,55 @@ function renderTeamView(selected){
   return chipsHtml + groupsHtml;
 }
 
+function renderProjectTeamView(project, selected){
+  const counts = {};
+  TEAM.forEach(n => counts[n] = 0);
+  PHASES.forEach(ph => ph.steps.forEach(s => {
+    if(!s.assignable) return;
+    const state = project.steps[s.id];
+    if(!state || !state.applies) return;
+    state.assignees.forEach(a => { if(counts[a] !== undefined) counts[a]++; });
+  }));
+
+  const involved = TEAM.filter(n => counts[n] > 0);
+
+  if(involved.length === 0){
+    return `<div class="timeline-card"><div class="timeline-empty">Todavía no hay nadie asignado a ningún paso de este proyecto.</div></div>`;
+  }
+
+  const chipsHtml = `
+    <div class="team-chip-row">
+      ${involved.map(name => `
+        <button class="team-chip ${selected===name?'active':''}" data-project-team-member="${escapeHtml(name)}">
+          <span class="avatar-bubble">${initials(name)}</span>
+          ${escapeHtml(name)} <span class="count">· ${counts[name]}</span>
+        </button>`).join('')}
+    </div>`;
+
+  if(!selected){
+    return chipsHtml + `<div class="timeline-card"><div class="timeline-empty">Elige una persona arriba para ver sus tareas en este proyecto.</div></div>`;
+  }
+
+  const tasks = [];
+  PHASES.forEach(ph => ph.steps.forEach(s => {
+    if(!s.assignable) return;
+    const state = project.steps[s.id];
+    if(!state || !state.applies) return;
+    if(!state.assignees.includes(selected)) return;
+    tasks.push({ phase:ph, step:s, state });
+  }));
+
+  const rowsHtml = tasks.map(t => `
+    <div class="team-task-row">
+      <span class="dot" style="background:${statusColor(stepStatus(t.state))};"></span>
+      <span class="tname ${t.state.done?'done':''}">${escapeHtml(t.step.name)}</span>
+      <span class="tphase">${t.phase.emoji} ${t.phase.name}</span>
+      <span class="tdate">${t.state.done ? ('✓ '+(t.state.doneDate||'')) : (t.state.estDate||'sin fecha')}</span>
+    </div>`).join('');
+
+  return chipsHtml + `<div class="team-task-group"><h4 style="cursor:default;">${escapeHtml(selected)} (${tasks.length})</h4>${rowsHtml}</div>`;
+}
+
 function createProjectFlow(){
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1284,11 +1333,13 @@ function escapeHtml(str){
    ============================================================ */
 let collapsedPhases = {};
 let detailTab = 'checklist';
+let selectedProjectTeamMember = null;
 
 function openProject(id){
   currentProjectId = id;
   collapsedPhases = {};
   detailTab = 'checklist';
+  selectedProjectTeamMember = null;
   renderDetail();
 }
 
@@ -1319,6 +1370,7 @@ function renderDetail(){
     <div class="view-tabs">
       <button class="view-tab ${detailTab==='checklist'?'active':''}" data-detailtab="checklist">Checklist</button>
       <button class="view-tab ${detailTab==='timeline'?'active':''}" data-detailtab="timeline">Cronograma</button>
+      <button class="view-tab ${detailTab==='team'?'active':''}" data-detailtab="team">Equipo</button>
     </div>`;
 
   if(detailTab === 'timeline'){
@@ -1338,6 +1390,30 @@ function renderDetail(){
       btn.addEventListener('click', () => { detailTab = btn.dataset.detailtab; renderDetail(); });
     });
     bindDeliveryField(project);
+    return;
+  }
+
+  if(detailTab === 'team'){
+    main.innerHTML = `
+      <button class="back-btn" id="backBtn">${BACK_SVG} Volver a proyectos</button>
+      <div class="detail-head">
+        <div class="detail-title-wrap">
+          <div class="detail-title" style="border:none;">${escapeHtml(project.name)}</div>
+          <div class="detail-meta">Creado el ${project.createdAt}</div>
+        </div>
+      </div>
+      ${tabsHtml}
+      ${renderProjectTeamView(project, selectedProjectTeamMember)}`;
+    document.getElementById('backBtn').onclick = renderBoard;
+    main.querySelectorAll('[data-detailtab]').forEach(btn => {
+      btn.addEventListener('click', () => { detailTab = btn.dataset.detailtab; renderDetail(); });
+    });
+    main.querySelectorAll('[data-project-team-member]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedProjectTeamMember = btn.dataset.projectTeamMember;
+        renderDetail();
+      });
+    });
     return;
   }
 
