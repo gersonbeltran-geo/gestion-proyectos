@@ -701,6 +701,15 @@ function computeDateRange(msArray){
   return { min, max };
 }
 
+const ZOOM_DAYS_BACK = 45, ZOOM_DAYS_FORWARD = 90;
+function computeZoomRange(){
+  const todayMs = new Date(todayStr()).getTime();
+  return { min: todayMs - ZOOM_DAYS_BACK*86400000, max: todayMs + ZOOM_DAYS_FORWARD*86400000 };
+}
+
+let projectTimelineZoom = false;
+let globalTimelineZoom = false;
+
 function datePct(dateStr, range){
   const ms = new Date(dateStr).getTime();
   let pct = ((ms - range.min) / (range.max - range.min)) * 100;
@@ -727,7 +736,7 @@ function renderTodayLine(range){
 
 /* --- Cronograma por proyecto (una fila por fase) --- */
 function renderProjectTimeline(project){
-  const phaseRows = PHASES.map(phase => {
+  const phaseRowsFull = PHASES.map(phase => {
     const points = phase.steps
       .filter(s => project.steps[s.id] && project.steps[s.id].applies)
       .map(s => {
@@ -739,26 +748,30 @@ function renderProjectTimeline(project){
     return { phase, points };
   });
 
-  const allMs = phaseRows.flatMap(r => r.points.map(p => new Date(p.date).getTime())).concat([new Date(todayStr()).getTime()]);
+  const allMs = phaseRowsFull.flatMap(r => r.points.map(p => new Date(p.date).getTime())).concat([new Date(todayStr()).getTime()]);
   if(project.deliveryDate) allMs.push(new Date(project.deliveryDate).getTime());
   if(project.startDate) allMs.push(new Date(project.startDate).getTime());
-  const range = computeDateRange(allMs);
 
-  if(!range || phaseRows.every(r => r.points.length===0)){
+  if(phaseRowsFull.every(r => r.points.length===0) && !project.startDate && !project.deliveryDate){
     return `<div class="timeline-card"><div class="timeline-empty">Todavía no hay fechas rellenadas en este proyecto.<br>Añade alguna fecha estimada en el checklist para ver aquí el cronograma.</div></div>`;
   }
 
-  const rowsHtml = phaseRows.map(r => {
-    if(r.points.length === 0){
+  const range = projectTimelineZoom ? computeZoomRange() : computeDateRange(allMs);
+
+  const inRange = (d) => { const ms = new Date(d).getTime(); return ms >= range.min && ms <= range.max; };
+
+  const rowsHtml = phaseRowsFull.map(r => {
+    const visiblePoints = projectTimelineZoom ? r.points.filter(p => inRange(p.date)) : r.points;
+    if(visiblePoints.length === 0){
       return `
         <div class="timeline-row">
           <div class="timeline-row-label">${r.phase.emoji} ${r.phase.name}</div>
-          <div class="timeline-track"><span class="timeline-empty-row">Sin fechas</span></div>
+          <div class="timeline-track"><span class="timeline-empty-row">${r.points.length ? 'Sin fechas en este periodo' : 'Sin fechas'}</span></div>
         </div>`;
     }
-    const pcts = r.points.map(p => datePct(p.date, range));
+    const pcts = visiblePoints.map(p => datePct(p.date, range));
     const minPct = Math.min(...pcts), maxPct = Math.max(...pcts);
-    const dots = r.points.map((p,i) => `<span class="timeline-dot" style="left:${pcts[i]}%; background:${statusColor(p.status)};" title="${escapeHtml(p.name)} · ${p.date}"></span>`).join('');
+    const dots = visiblePoints.map((p,i) => `<span class="timeline-dot" style="left:${pcts[i]}%; background:${statusColor(p.status)};" title="${escapeHtml(p.name)} · ${p.date}"></span>`).join('');
     return `
       <div class="timeline-row">
         <div class="timeline-row-label">${r.phase.emoji} ${r.phase.name}</div>
@@ -769,15 +782,21 @@ function renderProjectTimeline(project){
       </div>`;
   }).join('');
 
-  const deliveryLineHtml = project.deliveryDate
+  const deliveryLineHtml = project.deliveryDate && (!projectTimelineZoom || inRange(project.deliveryDate))
     ? `<div class="timeline-delivery-line" style="left:${datePct(project.deliveryDate, range)}%;"><span class="timeline-delivery-label">🏁 Entrega</span></div>`
     : '';
-  const startLineHtml = project.startDate
+  const startLineHtml = project.startDate && (!projectTimelineZoom || inRange(project.startDate))
     ? `<div class="timeline-delivery-line" style="left:${datePct(project.startDate, range)}%; border-left-color:var(--teal);"><span class="timeline-delivery-label" style="color:var(--teal);">📅 Inicio</span></div>`
     : '';
 
+  const zoomToggleHtml = `
+    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+      <button type="button" class="view-tab" data-zoom-toggle="project">${projectTimelineZoom ? '🔭 Ver todo el periodo' : '🔍 Zoom a la actualidad'}</button>
+    </div>`;
+
   return `
     <div class="timeline-card">
+      ${zoomToggleHtml}
       <div class="timeline-legend">
         <div class="timeline-legend-item"><span class="dot" style="background:var(--green);"></span> Hecho</div>
         <div class="timeline-legend-item"><span class="dot" style="background:var(--amber);"></span> Planificado</div>
@@ -812,6 +831,14 @@ function projectPhaseRepresentativeDates(project){
   });
 }
 
+function projectTimelineMarkers(project){
+  const markers = projectPhaseRepresentativeDates(project).filter(Boolean)
+    .map(r => ({ emoji: r.phase.emoji, date: r.date, label: r.phase.name }));
+  if(project.startDate) markers.push({ emoji:'📅', date: project.startDate, label:'Inicio' });
+  if(project.deliveryDate) markers.push({ emoji:'🏁', date: project.deliveryDate, label:'Entrega' });
+  return markers;
+}
+
 function renderGlobalTimeline(filter){
   const withCategory = projects.map(p => {
     const stats = projectStats(p);
@@ -829,8 +856,9 @@ function renderGlobalTimeline(filter){
 
   const filtered = filter==='all' ? withCategory : withCategory.filter(x=>x.category===filter);
 
-  const allMs = withCategory.flatMap(x => projectPhaseRepresentativeDates(x.project).filter(Boolean).map(pd=>new Date(pd.date).getTime())).concat([new Date(todayStr()).getTime()]);
-  const range = computeDateRange(allMs);
+  const allMs = withCategory.flatMap(x => projectTimelineMarkers(x.project).map(m=>new Date(m.date).getTime())).concat([new Date(todayStr()).getTime()]);
+  const range = globalTimelineZoom ? computeZoomRange() : computeDateRange(allMs);
+  const inRange = (d) => { const ms = new Date(d).getTime(); return ms >= range.min && ms <= range.max; };
 
   const statsHtml = `
     <div class="summary-stats">
@@ -853,20 +881,21 @@ function renderGlobalTimeline(filter){
     return statsHtml + chipsHtml + `<div class="timeline-card"><div class="timeline-empty">No hay proyectos que mostrar con este filtro.</div></div>`;
   }
 
-  const legendHtml = `<div class="timeline-legend">${PHASES.map(ph => `<div class="timeline-legend-item">${ph.emoji} ${ph.name}</div>`).join('')}</div>`;
+  const legendHtml = `<div class="timeline-legend">${PHASES.map(ph => `<div class="timeline-legend-item">${ph.emoji} ${ph.name}</div>`).join('')}<div class="timeline-legend-item">📅 Inicio</div><div class="timeline-legend-item">🏁 Entrega</div></div>`;
 
   const rowsHtml = filtered.map(({project}) => {
-    const reps = projectPhaseRepresentativeDates(project).filter(Boolean);
-    if(reps.length === 0){
+    const allMarkers = projectTimelineMarkers(project);
+    const markers = globalTimelineZoom ? allMarkers.filter(m => inRange(m.date)) : allMarkers;
+    if(markers.length === 0){
       return `
         <div class="timeline-row">
           <div class="timeline-row-label" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
-          <div class="timeline-track"><span class="timeline-empty-row">Sin fechas</span></div>
+          <div class="timeline-track"><span class="timeline-empty-row">${allMarkers.length ? 'Sin fechas en este periodo' : 'Sin fechas'}</span></div>
         </div>`;
     }
-    const pcts = reps.map(r => datePct(r.date, range));
+    const pcts = markers.map(m => datePct(m.date, range));
     const minPct = Math.min(...pcts), maxPct = Math.max(...pcts);
-    const dots = reps.map((r,i) => `<span class="timeline-dot-emoji" style="left:${pcts[i]}%;" title="${escapeHtml(project.name)} · ${r.phase.name} · ${r.date}">${r.phase.emoji}</span>`).join('');
+    const dots = markers.map((m,i) => `<span class="timeline-dot-emoji" style="left:${pcts[i]}%;" title="${escapeHtml(project.name)} · ${m.label} · ${m.date}">${m.emoji}</span>`).join('');
     return `
       <div class="timeline-row">
         <div class="timeline-row-label" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
@@ -879,6 +908,9 @@ function renderGlobalTimeline(filter){
 
   return statsHtml + chipsHtml + `
     <div class="timeline-card">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <button type="button" class="view-tab" data-zoom-toggle="global">${globalTimelineZoom ? '🔭 Ver todo el periodo' : '🔍 Zoom a la actualidad'}</button>
+      </div>
       ${legendHtml}
       <div class="timeline-scroll">
         <div class="timeline-inner">
@@ -1191,6 +1223,9 @@ function bindBoardTabEvents(){
       renderBoard();
     });
   });
+  main.querySelectorAll('[data-zoom-toggle="global"]').forEach(btn => {
+    btn.addEventListener('click', () => { globalTimelineZoom = !globalTimelineZoom; renderBoard(); });
+  });
   main.querySelectorAll('[data-open-project]').forEach(el => {
     el.addEventListener('click', () => openProject(el.dataset.openProject));
   });
@@ -1389,6 +1424,7 @@ function openProject(id){
   detailTab = 'checklist';
   selectedProjectTeamMember = null;
   expandedDoneSteps = new Set();
+  projectTimelineZoom = false;
   renderDetail();
 }
 
@@ -1447,6 +1483,9 @@ function renderDetail(){
     document.getElementById('backBtn').onclick = renderBoard;
     main.querySelectorAll('[data-detailtab]').forEach(btn => {
       btn.addEventListener('click', () => { detailTab = btn.dataset.detailtab; renderDetail(); });
+    });
+    main.querySelectorAll('[data-zoom-toggle="project"]').forEach(btn => {
+      btn.addEventListener('click', () => { projectTimelineZoom = !projectTimelineZoom; renderDetail(); });
     });
     bindDeliveryField(project);
     return;
