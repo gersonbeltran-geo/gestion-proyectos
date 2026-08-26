@@ -292,6 +292,15 @@
   .assignee-select-btn:hover{border-color:var(--violet);}
   .assignee-select-btn .placeholder{color:var(--ink-soft); font-weight:500;}
   .assignee-select-btn svg{flex-shrink:0; color:var(--ink-soft);}
+  .assignee-avatars-btn{
+    display:flex; align-items:center; background:none; border:none; cursor:pointer; padding:2px 4px;
+    border-radius:20px;
+  }
+  .assignee-avatars-btn:hover{background:var(--violet-bg);}
+  .assignee-empty{
+    font-size:10.5px; color:var(--ink-soft); font-weight:600; border:1.5px dashed var(--line);
+    padding:4px 10px; border-radius:20px; white-space:nowrap;
+  }
   .assignee-dropdown{
     position:fixed; z-index:100;
     background:#fff; border:1.5px solid var(--line); border-radius:10px;
@@ -1506,19 +1515,17 @@ function renderStepRow(project, step){
       </div>`;
   }
 
-  let assigneesHtml = '';
+  let assigneeInlineHtml = '';
   if(step.assignable){
     const selected = state.assignees;
-    const summary = selected.length === 0
-      ? '<span class="placeholder">Seleccionar equipo</span>'
-      : (selected.length <= 2 ? escapeHtml(selected.join(', ')) : `${escapeHtml(selected.slice(0,2).join(', '))} +${selected.length-2}`);
     const isOpen = openDropdown === step.id;
-    assigneesHtml = `
-      <div class="assignees-wrap">
-        <span class="assignees-label">Asignado a</span>
-        <button type="button" class="assignee-select-btn" data-assign-toggle="${step.id}">
-          ${summary}
-          ${CARET_SVG}
+    const avatarsOrPlaceholder = selected.length
+      ? selected.map(n => `<span class="avatar-bubble" title="${escapeHtml(n)}">${initials(n)}</span>`).join('')
+      : '<span class="assignee-empty">+ Asignar</span>';
+    assigneeInlineHtml = `
+      <div class="assignee-inline" style="margin-left:auto; position:relative;">
+        <button type="button" class="assignee-avatars-btn" data-assign-toggle="${step.id}" title="Asignado a">
+          ${avatarsOrPlaceholder}
         </button>
         ${isOpen ? `
         <div class="assignee-dropdown">
@@ -1545,7 +1552,7 @@ function renderStepRow(project, step){
         <div class="step-instr">${escapeHtml(step.instr)}</div>
         <div class="step-controls" style="${step.links ? 'flex-direction:column; align-items:stretch;' : ''}">
           ${linksHtml}
-          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%;">
             <span class="step-date-label">Estimada</span>
             <input type="date" class="step-date" value="${state.estDate||''}" data-est="${step.id}">
             ${state.done ? `<span class="done-date-note">✓ ${state.doneDate||''}</span>` : ''}
@@ -1553,9 +1560,9 @@ function renderStepRow(project, step){
               <input type="checkbox" data-applies="${step.id}" ${state.applies?'checked':''}>
               Aplica a este proyecto
             </label>
+            ${assigneeInlineHtml}
           </div>
         </div>
-        ${assigneesHtml}
       </div>
     </div>`;
 }
@@ -1626,7 +1633,11 @@ function bindStepEvents(project){
       if(!el.checked && idx !== -1) state.assignees.splice(idx,1);
       await saveProjects();
       const btn = main.querySelector(`[data-assign-toggle="${stepId}"]`);
-      if(btn){
+      if(btn && btn.classList.contains('assignee-avatars-btn')){
+        btn.innerHTML = state.assignees.length
+          ? state.assignees.map(n => `<span class="avatar-bubble" title="${escapeHtml(n)}">${initials(n)}</span>`).join('')
+          : '<span class="assignee-empty">+ Asignar</span>';
+      } else if(btn){
         const summary = state.assignees.length === 0
           ? '<span class="placeholder">Seleccionar equipo</span>'
           : (state.assignees.length <= 2 ? escapeHtml(state.assignees.join(', ')) : `${escapeHtml(state.assignees.slice(0,2).join(', '))} +${state.assignees.length-2}`);
@@ -1638,7 +1649,7 @@ function bindStepEvents(project){
   if(openDropdown){
     setTimeout(() => {
       document.addEventListener('click', function closeDropdown(e){
-        if(!e.target.closest('.assignees-wrap') && !e.target.closest('.assignee-dropdown')){
+        if(!e.target.closest('.assignee-inline') && !e.target.closest('.assignee-dropdown')){
           openDropdown = null;
           renderDetail();
         }
