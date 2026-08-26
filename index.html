@@ -306,6 +306,17 @@
     cursor:pointer; padding:2px 6px; margin-left:auto; white-space:nowrap;
   }
   .step-expand-toggle:hover{color:var(--coral-deep);}
+  .avatar-bubble.coordinator{background:var(--coral-soft); color:var(--coral-deep);}
+  .coordinator-field{display:inline-flex; align-items:center; gap:6px; position:relative;}
+  .coordinator-dropdown{
+    position:fixed; z-index:100; background:#fff; border:1.5px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); padding:6px; min-width:170px;
+  }
+  .coordinator-option{
+    display:flex; align-items:center; gap:8px; font-size:12px; padding:7px 9px; border-radius:7px; cursor:pointer;
+  }
+  .coordinator-option:hover{background:var(--coral-soft);}
+  .coordinator-option.clear{color:var(--red); border-top:1px solid var(--line); margin-top:4px; padding-top:8px;}
   .assignee-dropdown{
     position:fixed; z-index:100;
     background:#fff; border:1.5px solid var(--line); border-radius:10px;
@@ -612,7 +623,7 @@ function newProject(name){
   PHASES.forEach(ph => ph.steps.forEach(st => {
     steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
   }));
-  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), startDate: null, deliveryDate: null, steps };
+  return { id, name: name || 'Nuevo proyecto', createdAt: todayStr(), startDate: null, deliveryDate: null, coordinator: null, steps };
 }
 
 /* ============================================================
@@ -1016,6 +1027,7 @@ function ensureProjectsUpToDate(){
   projects.forEach(project => {
     if(project.deliveryDate === undefined) project.deliveryDate = null;
     if(project.startDate === undefined) project.startDate = null;
+    if(project.coordinator === undefined) project.coordinator = null;
     PHASES.forEach(ph => ph.steps.forEach(st => {
       if(!project.steps[st.id]){
         project.steps[st.id] = { done:false, doneDate:null, estDate:null, url:'', assignees:[], applies:true };
@@ -1159,10 +1171,12 @@ function renderBoard(){
     const pct = stats.total ? Math.round((stats.done/stats.total)*100) : 0;
     const team = phaseAssignees(p, stats.currentPhase);
     const avatarsHtml = team.length ? `<div class="pcard-team">${team.map(n => `<span class="avatar-bubble" title="${escapeHtml(n)}">${initials(n)}</span>`).join('')}</div>` : '';
+    const coordHtml = p.coordinator ? `<span class="avatar-bubble coordinator" title="Coordinador: ${escapeHtml(p.coordinator)}" style="flex-shrink:0;">${initials(p.coordinator)}</span>` : '';
     return `
       <div class="pcard" data-id="${p.id}">
         <div class="pcard-top">
           <div class="pcard-title">${escapeHtml(p.name)}</div>
+          ${coordHtml}
           <button class="pcard-del" data-del="${p.id}" title="Eliminar proyecto">${TRASH_SVG}</button>
         </div>
         ${avatarsHtml}
@@ -1425,16 +1439,31 @@ function openProject(id){
   selectedProjectTeamMember = null;
   expandedDoneSteps = new Set();
   projectTimelineZoom = false;
+  coordinatorDropdownOpen = false;
   renderDetail();
 }
 
+let coordinatorDropdownOpen = false;
+
 function renderDeliveryField(project){
+  const coordAvatar = project.coordinator
+    ? `<span class="avatar-bubble coordinator" title="${escapeHtml(project.coordinator)}">${initials(project.coordinator)}</span>`
+    : '<span class="assignee-empty">+ Asignar</span>';
   return `
-    <div class="delivery-field">
+    <div class="delivery-field" style="flex-wrap:wrap; row-gap:8px;">
       📅 Fecha de inicio:
       <input type="date" id="projStart" value="${project.startDate||''}">
       &nbsp;&nbsp;🏁 Fecha de entrega:
       <input type="date" id="projDelivery" value="${project.deliveryDate||''}">
+      &nbsp;&nbsp;👤 Coordinador:
+      <span class="coordinator-field">
+        <button type="button" class="assignee-avatars-btn" id="coordinatorBtn" title="Coordinador del proyecto">${coordAvatar}</button>
+        ${coordinatorDropdownOpen ? `
+        <div class="coordinator-dropdown" id="coordinatorDropdown">
+          ${TEAM.map(name => `<div class="coordinator-option" data-set-coordinator="${escapeHtml(name)}"><span class="avatar-bubble coordinator">${initials(name)}</span>${escapeHtml(name)}</div>`).join('')}
+          ${project.coordinator ? `<div class="coordinator-option clear" data-set-coordinator="">Quitar coordinador</div>` : ''}
+        </div>` : ''}
+      </span>
     </div>`;
 }
 function bindDeliveryField(project){
@@ -1447,12 +1476,54 @@ function bindDeliveryField(project){
     });
   }
   const input = document.getElementById('projDelivery');
-  if(!input) return;
-  input.addEventListener('change', async () => {
-    project.deliveryDate = input.value || null;
-    await saveProjects();
-    renderDetail();
+  if(input){
+    input.addEventListener('change', async () => {
+      project.deliveryDate = input.value || null;
+      await saveProjects();
+      renderDetail();
+    });
+  }
+
+  const coordBtn = document.getElementById('coordinatorBtn');
+  if(coordBtn){
+    coordBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      coordinatorDropdownOpen = !coordinatorDropdownOpen;
+      renderDetail();
+    });
+  }
+  document.querySelectorAll('[data-set-coordinator]').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      project.coordinator = el.dataset.setCoordinator || null;
+      coordinatorDropdownOpen = false;
+      await saveProjects();
+      renderDetail();
+    });
   });
+
+  if(coordinatorDropdownOpen){
+    setTimeout(() => {
+      const btn = document.getElementById('coordinatorBtn');
+      const dd = document.getElementById('coordinatorDropdown');
+      if(btn && dd){
+        const r = btn.getBoundingClientRect();
+        const ddRect = dd.getBoundingClientRect();
+        let top = r.bottom + 4, left = r.left;
+        if(top + ddRect.height > window.innerHeight - 8) top = r.top - ddRect.height - 4;
+        if(left + ddRect.width > window.innerWidth - 8) left = window.innerWidth - ddRect.width - 8;
+        dd.style.top = top + 'px';
+        dd.style.left = left + 'px';
+      }
+      document.addEventListener('click', function closeCoordDD(e){
+        if(!e.target.closest('.coordinator-field')){
+          coordinatorDropdownOpen = false;
+          renderDetail();
+        }
+        document.removeEventListener('click', closeCoordDD);
+      }, { once:true });
+    }, 0);
+  }
 }
 
 function renderDetail(){
